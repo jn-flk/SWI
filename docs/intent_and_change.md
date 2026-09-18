@@ -30,7 +30,6 @@ Reservation, Resource, User + případně 0–3 další pojmy.
 
 ## Persistent state
 Co ukládáme o Reservation a Resource.
-
 Resource (sedadlo) - řada, číslo sedadla
 Reservation (konkrétní představení) - časový slot, hra, 
 
@@ -49,10 +48,12 @@ Nelze rezervovat 15 min před začátkem představení.
 Notification Service
 
 ## Assumption
-! Jedna věc, kterou nyní považujete za pravdivou, ale není jistota.
+Django ORM and a relational database are sufficient to represent
+and persist our core reservation entities: Seat, Play, Performance, Hall and Reservation.
 
 ## Unknown
-! Jedna důležitá věc, kterou nyní nevíte.
+We do not yet know whether our proposed model relationships can
+actually persist and retrieve a Reservation correctly from the database.
 
 ## Selected future pressure
 Category: Q

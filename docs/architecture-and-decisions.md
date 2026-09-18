@@ -1,0 +1,1 @@
+tady asi bude popis Dnjango apps a popis modelu
