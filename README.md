@@ -2,6 +2,7 @@
 
 ## HAH 
 **Members:** Honza Adam Honza
+
 **Repository:** https://github.com/jn-flk/SWI
 
 
@@ -20,7 +21,9 @@ See `docs/intent-and-change.md` for the full domain description.
 
 ## Setup & run
 
+```bash
 python3 -m venv venv
 source venv/bin/activate
 pip install django
 python manage.py test
+```
