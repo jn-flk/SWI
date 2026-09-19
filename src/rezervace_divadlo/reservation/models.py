@@ -45,8 +45,17 @@ class Reservation(models.Model):
         on_delete=models.CASCADE,
         related_name="reservations",
     )
-    seats = models.ManyToManyField(
+    seat = models.ForeignKey(
         Seat,
+        on_delete=models.CASCADE,
         related_name="reservations",
     )
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["performance", "seat"],
+                name="unique_reservation_performance_seat",
+            )
+        ]
