@@ -1,6 +1,9 @@
 # Nazev tymu
 
-## HAH - Honza Adam Honza
+## HAH 
+**Members:** Honza Adam Honza
+**Repository:** https://github.com/jn-flk/SWI
+
 
 ## Reservation domain
 Co konkrétně rezervujeme?
@@ -12,3 +15,12 @@ Co konkrétně rezervujeme?
 - Operations - create, confirm/approve, cancel, check availability
 - Common rule - dvě potvrzené rezervace stejného resource se nesmí překrývat
 - Boundary - Notification Service
+
+See `docs/intent-and-change.md` for the full domain description.
+
+## Setup & run
+
+python3 -m venv venv
+source venv/bin/activate
+pip install django
+python manage.py test
