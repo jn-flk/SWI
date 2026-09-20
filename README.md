@@ -27,3 +27,19 @@ source venv/bin/activate
 pip install django
 python manage.py test
 ```
+
+## CP1 walking skeleton
+
+#### Functionality
+A spectator can reserve a specific seat for a specific performance.
+
+#### End-to-end flow
+**POST /reservations**
+- validate Performance exists
+- validate Seat exists
+- validate Seat belongs to Performance's Hall
+- check Seat is available for this Performance
+- create Reservation
+- persist Reservation
+- return reservation ID
+
