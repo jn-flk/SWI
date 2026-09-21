@@ -30,9 +30,11 @@ Resource (sedadlo) - řada, číslo sedadla
 Reservation (konkrétní představení) - časový slot, hra, sedadlo, stav rezervace, čas vytvoření 
 
 ## State-changing operation
--> RESERVED
-RESERVED -> CANCELED
-RESERVED -> DONE
+[initial] -> DRAFT
+DRAFT -> CONFIRMED
+DRAFT -> [deleted]
+CONFIRMED -> CANCELED
+CONFIRMED -> DONE
 
 ## Common business rule
 Sedadlo v konkrétním představení může být rezervováno jenom jednou.
