@@ -43,3 +43,14 @@ A spectator can reserve a specific seat for a specific performance.
 - persist Reservation
 - return reservation ID
 
+## Dopad změny C02
+
+Změněná podmínka:
+Dotčené požadavky / části specifikace:
+Nedotčené požadavky / části + proč:
+Nový aktér / operace, pokud vznikne:
+Změněná pravidla / význam stavů:
+Změna diagramu případů užití:
+Změna stavového diagramu:
+Nové příklady ověření:
+Architektonické drivery pro C03:

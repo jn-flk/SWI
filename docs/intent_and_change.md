@@ -61,3 +61,18 @@ actually persist and retrieve a Reservation correctly from the database.
 Category: Q
 Concrete pressure: 20x souběžných rezervací
 Why it is relevant to our reservation system: Systém aktuálně neřeší souběžný přístup více uživatelů ke stejnému sedadlu ve stejný okamžik (např. při prodeji vstupenek na premiéru). Databázový unique constraint sice zabrání uložení duplicitní rezervace, ale při vyšší zátěži je potřeba řešit i uživatelský zážitek (race condition – dva lidé vidí sedadlo jako volné současně) a výkon databáze při větším počtu souběžných požadavků.
+
+## Common rules
+
+BR-01 — Interval semantics
+Reservation intervals use [start,end) semantics.
+
+BR-02 — Exclusive Resource invariant
+At no committed system state may two CONFIRMED Reservations overlap
+for the same exclusive Resource.
+
+BR-03 — Cancellation policy
+[team-defined, domain-specific accepted policy]
+
+BR-04 — Domain-specific rule from C01
+[team-defined]
