@@ -31,9 +31,13 @@ Reservation (konkrétní představení) - časový slot, hra, sedadlo, stav reze
 
 ## State-changing operation
 [initial] -> DRAFT
+
 DRAFT -> CONFIRMED
+
 DRAFT -> [deleted]
+
 CONFIRMED -> CANCELED
+
 CONFIRMED -> DONE
 
 ## Common business rule
