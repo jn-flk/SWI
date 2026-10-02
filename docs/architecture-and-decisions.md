@@ -21,7 +21,10 @@ Aplikace `reservation` aktuálně definuje pět modelů:
 - **Hall** — fyzický prostor/sál
 - **Seat** — patří k `Hall`; unikátní podle kombinace `(hall, row, number)`
 - **Performance** — konkrétní uvedení `Play` v daném `Hall` v daný čas (`start_at`)
-- **Reservation** — propojuje `Seat` s `Performance`; unikátní podle kombinace `(performance, seat)`, takže stejné sedadlo nelze na stejné představení zarezervovat dvakrát
+- **Reservation** — propojuje `Seat` s `Performance`; unikátní podle kombinace `(performance, seat)`, takže stejné sedadlo nelze na stejné představení zarezervovat dvakrát; používá stavy
+	`DRAFT`, `CONFIRMED` a `CANCELLED`. Aktivní `DRAFT` drží sedadlo po dobu
+	`hold_until`, `CONFIRMED` ho blokuje trvale pro dané představení a
+	`CANCELLED` ho uvolňuje.
 
 
 
@@ -37,5 +40,5 @@ Aplikace `reservation` aktuálně definuje pět modelů:
 ## Známá omezení (stav k C01)
 
 - Zatím nejsou implementovaná žádná API/views — ověřený je pouze datový model a persistence.
-- `Reservation` zatím nemá pole `status`, i když doména definuje stavy `RESERVED / CANCELED / DONE` — tohle je součást minimální reservation domény, kterou je potřeba doimplementovat do C02, zatím to není v kódu.
+- `Reservation` zatím nemá pole `status` ani `hold_until` a operace OP-01 až OP-04 ještě nejsou implementované.
 - Boundary na Notification Service je definovaná koncepčně, ale zatím není implementovaná ani nastubovaná.
