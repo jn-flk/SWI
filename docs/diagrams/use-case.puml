@@ -1,0 +1,23 @@
+@startuml
+!pragma layout smetana
+title Diagram případů užití
+left to right direction
+
+actor "Návštěvník" as V
+actor "Schvalovatel\n(oprávněná osoba)" as A
+
+rectangle "Rezervační systém divadla" {
+  usecase "OP-01\nVytvořit rezervaci" as OP1
+  usecase "OP-02\nZjistit dostupnost sedadla" as OP2
+  usecase "OP-03\nPotvrdit rezervaci" as OP3
+  usecase "OP-04\nZrušit rezervaci" as OP4
+  usecase "OP-05\nSchválit / zamítnout\nrezervaci" as OP5
+}
+
+V --> OP1
+V --> OP2
+V --> OP3
+V --> OP4
+OP5 <-- A
+
+@enduml

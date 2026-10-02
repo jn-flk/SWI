@@ -1,0 +1,30 @@
+@startuml
+title Diagram aktivit – Zrušit rezervaci
+
+|Návštěvník|
+start
+:Požádá o zrušení rezervace X;
+|Systém|
+if (Rezervace X existuje a uživatel\nje k ní oprávněn?) then (ne)
+  :Odmítnout;
+  stop
+endif
+if (Stav je CANCELLED?) then (ano)
+  :Výsledek dle BR-03 (TBD:\nidempotentní úspěch / odmítnutí);
+  stop
+endif
+if (Stav ∈ {DRAFT, PENDING_APPROVAL,\nCONFIRMED}?) then (ne)
+  :Odmítnout – REJECTED / EXPIRED\nnelze zrušit;
+  stop
+endif
+if (now < start představení? (BR-03)) then (ne)
+  :Odmítnout – představení už začalo;\nstav se nemění;
+  stop
+endif
+:Nastavit stav CANCELLED\n(záznam se nemaže);
+:Sedadlo přestává být blokováno\n(pokud bylo CONFIRMED);
+:Vrátit stav CANCELLED;
+|Návštěvník|
+:Rezervace je zrušena;
+stop
+@enduml

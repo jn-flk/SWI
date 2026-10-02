@@ -1,0 +1,39 @@
+@startuml
+title Diagram aktivit – Potvrdit rezervaci
+
+|Návštěvník|
+start
+:Požádá o potvrzení rezervace X;
+|Systém|
+if (Rezervace X existuje a uživatel\nje k ní oprávněn?) then (ne)
+  :Odmítnout;
+  stop
+endif
+if (Stav = DRAFT?) then (ne)
+  :Odmítnout – neplatný stav;\nstav se nemění;
+  stop
+endif
+if (Sedadlo je aktivní?) then (ne)
+  :Odmítnout – sedadlo neaktivní;\nzůstává DRAFT;
+  stop
+endif
+if (Překryv s CONFIRMED rezervací\ntéhož sedadla? (BR-02)) then (ano)
+  :Odmítnout – kolize;\nzůstává DRAFT;
+  stop
+endif
+if (Sedadlo vyžaduje schválení?) then (ano)
+  :Nastavit stav PENDING_APPROVAL;
+  :Spustit lhůtu pro schválení (TBD);
+else (ne)
+  :Nastavit stav CONFIRMED;
+  note right
+    Atomicky s kontrolou překryvu –
+    nejvýše jedna CONFIRMED (REQ-04).
+  end note
+endif
+:Vrátit aktuální stav rezervace;
+|Návštěvník|
+:Obdrží stav CONFIRMED,
+nebo PENDING_APPROVAL (čeká na schvalovatele);
+stop
+@enduml

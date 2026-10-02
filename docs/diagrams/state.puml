@@ -1,0 +1,40 @@
+@startuml
+!pragma layout smetana
+title Stavový diagram
+hide empty description
+
+state DRAFT
+state PENDING_APPROVAL
+state CONFIRMED
+state REJECTED
+state EXPIRED
+state CANCELLED
+
+[*] --> DRAFT : create (OP-01)\n[beze změny proti v0.1]
+
+DRAFT --> CONFIRMED : confirm (OP-03)\n[sedadlo nevyžaduje schválení,\nje aktivní a bez překryvu (BR-02)]
+DRAFT --> PENDING_APPROVAL : confirm (OP-03)\n[sedadlo vyžaduje schválení,\nje aktivní a bez překryvu (BR-02)]
+
+PENDING_APPROVAL --> CONFIRMED : approve (OP-05)\n[schvalovatel oprávněn,\nbez překryvu (BR-02)]
+PENDING_APPROVAL --> REJECTED : reject (OP-05)\n[schvalovatel oprávněn]
+PENDING_APPROVAL --> EXPIRED : vypršení lhůty\n[now ≥ lhůta schválení (TBD)]
+
+DRAFT --> CANCELLED : cancel (OP-04)\n[now < start (BR-03)]
+PENDING_APPROVAL --> CANCELLED : cancel (OP-04)\n[now < start (BR-03)]
+CONFIRMED --> CANCELLED : cancel (OP-04)\n[now < start (BR-03)]
+
+REJECTED --> [*]
+EXPIRED --> [*]
+CANCELLED --> [*]
+
+note right of PENDING_APPROVAL
+  Neblokuje sedadlo – blokuje pouze
+  CONFIRMED (BR-02 i REQ-02 beze změny).
+  Proto approve znovu kontroluje překryv;
+  při kolizi je odmítnut a rezervace
+  zůstává PENDING_APPROVAL.
+  Zpožděné schválení = rezervace setrvává
+  v tomto stavu až do approve / reject /
+  vypršení / cancel.
+end note
+@enduml
