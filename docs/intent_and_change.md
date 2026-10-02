@@ -56,6 +56,7 @@ nejsou předepsány; implementace musí zachovat pozorovatelné podmínky tohoto
 modelu.
 
 
+
 # C01 - Project Frame
 
 Resource - sedadlo
@@ -120,16 +121,3 @@ actually persist and retrieve a Reservation correctly from the database.
 ## Selected future pressure
 Category: Q
 Concrete pressure: 20x souběžnch rezervací
-Why it is relevant to our reservation system: 
-
-Category: C
-Concrete pressure: 
-Why it is relevant to our reservation system: 
-
-Category: R
-Concrete pressure: 
-Why it is relevant to our reservation system: 
-
-Category: L
-Concrete pressure: 
-Why it is relevant to our reservation system: 
