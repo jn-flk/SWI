@@ -1,0 +1,34 @@
+@startuml
+title Diagram aktivit – Potvrdit rezervaci
+
+|Návštěvník|
+start
+:Požádá o potvrzení rezervace X;
+|Systém|
+if (Rezervace X existuje a uživatel\nje k ní oprávněn?) then (ne)
+  :Odmítnout;
+  stop
+endif
+if (Stav = DRAFT?) then (ne)
+  :Odmítnout – neplatný stav\n(např. už EXPIRED / CANCELLED);\nstav se nemění;
+  stop
+endif
+note right
+  Kontrola překryvu zde není potřeba –
+  sedadla jsou blokovaná už od DRAFT.
+end note
+:Zastavit časovač neaktivity;
+if (Počet sedadel > 10\nnebo celý sál?) then (ano)
+  :Nastavit stav PENDING_APPROVAL;
+  :Spustit lhůtu pro schválení (24 h);
+  :Upozornit schvalovatele\n(Notification Service);
+  :→ pokračuje OP-05 Schválit / zamítnout;
+else (ne)
+  :Nastavit stav CONFIRMED;
+endif
+:Vrátit aktuální stav rezervace;
+|Návštěvník|
+:Obdrží stav CONFIRMED,
+nebo PENDING_APPROVAL (čeká na schvalovatele);
+stop
+@enduml

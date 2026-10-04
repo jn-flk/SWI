@@ -1,0 +1,35 @@
+@startuml
+title Diagram aktivit – Schválit / zamítnout hromadnou rezervaci
+
+|Schvalovatel|
+start
+:Otevře rezervaci X čekající na schválení;
+:Rozhodne: schválit nebo zamítnout;
+|Systém|
+if (Schvalovatel je oprávněn?) then (ne)
+  :Odmítnout – neoprávněný schvalovatel;
+  stop
+endif
+if (Stav = PENDING_APPROVAL?) then (ne)
+  :Odmítnout – neplatný stav\n(např. už EXPIRED / CANCELLED);
+  stop
+endif
+:Zastavit lhůtu pro schválení;
+if (Rozhodnutí?) then (zamítnout)
+  :Nastavit stav REJECTED;
+  :Uvolnit blokovaná sedadla;
+  :Vrátit stav REJECTED;
+else (schválit)
+  :Nastavit stav CONFIRMED;
+  note right
+    Kontrola překryvu není potřeba –
+    sedadla zůstala blokovaná
+    od vytvoření (DRAFT).
+  end note
+  :Vrátit stav CONFIRMED;
+endif
+:Upozornit návštěvníka\n(Notification Service);
+|Schvalovatel|
+:Vidí výsledek rozhodnutí;
+stop
+@enduml

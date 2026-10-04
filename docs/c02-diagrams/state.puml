@@ -1,0 +1,53 @@
+@startuml
+!pragma layout smetana
+title Stavový diagram
+hide empty description
+
+state DRAFT #FFE8B3 : blokuje sedadla
+state PENDING_APPROVAL #FFE8B3 : blokuje sedadla
+state CONFIRMED #FFE8B3 : blokuje sedadla
+state REJECTED
+state EXPIRED
+state CANCELLED
+
+[*] --> DRAFT : create (OP-01)\n[sedadla volná a aktivní]\n/ zablokovat sedadla
+
+DRAFT --> CONFIRMED : confirm (OP-03)\n[počet sedadel ≤ 10]
+DRAFT --> PENDING_APPROVAL : confirm (OP-03)\n[počet sedadel > 10\nnebo celý sál]
+DRAFT --> CANCELLED : cancel (OP-04)\n[now < start (BR-03)]\n/ uvolnit sedadla
+DRAFT --> EXPIRED : neaktivita uživatele ≥ 5 min\n/ uvolnit sedadla
+
+PENDING_APPROVAL --> CONFIRMED : approve (OP-05)\n[schvalovatel oprávněn]
+PENDING_APPROVAL --> REJECTED : reject (OP-05)\n[schvalovatel oprávněn]\n/ uvolnit sedadla
+PENDING_APPROVAL --> EXPIRED : vypršení lhůty schválení (24 h)\n/ uvolnit sedadla
+PENDING_APPROVAL --> CANCELLED : cancel (OP-04)\n[now < start (BR-03)]\n/ uvolnit sedadla
+
+CONFIRMED --> CANCELLED : cancel (OP-04)\n[now < start (BR-03)]\n/ uvolnit sedadla
+
+REJECTED --> [*]
+EXPIRED --> [*]
+CANCELLED --> [*]
+
+note right of DRAFT
+  Sedadla se blokují už při vytvoření
+  (atomicky s kontrolou dostupnosti) –
+  zabraňuje souběhu dvou uživatelů
+  o stejné sedadlo.
+  Aby uživatel neblokoval sedadla
+  donekonečna, po 5 min neaktivity
+  rezervace vyprší (EXPIRED).
+end note
+
+note right of PENDING_APPROVAL
+  Rozšíření pro hromadné rezervace
+  (počet sedadel > 10 nebo celý sál) –
+  vyžaduje ruční schválení do 24 h.
+  Sedadla zůstávají blokovaná, aby
+  schválení nemohlo skončit kolizí.
+end note
+
+legend right
+  <back:#FFE8B3>   </back> stav blokuje sedadla
+  ostatní koncové stavy sedadla neblokují
+endlegend
+@enduml
