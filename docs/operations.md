@@ -1,149 +1,265 @@
-# Operations
+# Operace a požadavky
+
+Tato baseline používá stavy `DRAFT`, `PENDING_APPROVAL`, `CONFIRMED`,
+`REJECTED`, `CANCELLED` a `EXPIRED`. Význam stavů a společná pravidla jsou
+definovány jednou v `intent_and_change.md`; zde se na ně pouze odkazuje.
 
 ## OP-01 — Create Reservation
 
-Goal / user value:
-User creates a reservation request that can later be confirmed.
+Cíl / hodnota pro uživatele:
+Uživatel si v mapě sálu vybere jedno nebo více sedadel a pokračováním
+s rezervací vytvoří jednu časově omezenou rezervaci pro všechna vybraná
+sedadla.
 
-Trigger:
-Authorized User requests a Reservation for Resource R and interval I.
+Spouštěcí událost:
+Autorizovaný návštěvník vybere alespoň jedno volné sedadlo a stiskne tlačítko
+pro pokračování s rezervací.
 
-Observable requirement:
-REQ-01:
-The system shall create a DRAFT Reservation for an existing Resource
-when the requested interval is valid.
+Pozorovatelný požadavek:
+REQ-01: Systém atomicky vytvoří jednu rezervaci ve stavu `DRAFT` pro všechna
+vybraná existující sedadla s platným `hold_until`, pouze pokud žádné z nich
+není drženo, čeká na schválení ani potvrzeno pro stejné představení.
 
-Preconditions:
-- User is authorized to create Reservations.
-- Resource exists.
-- start < end.
+Předpoklady:
+- uživatel je oprávněn rezervace vytvářet;
+- představení existuje a všechna sedadla patří do sálu představení;
+- seznam vybraných sedadel není prázdný a neobsahuje duplicity;
+- délka držení je kladná a je určena systémem.
 
-Success postcondition:
-- one new Reservation exists;
-- Reservation.state = DRAFT;
-- no Resource allocation is committed yet.
+Stav po úspěšném provedení:
+- existuje právě jedna nová rezervace ve stavu `DRAFT`;
+- všechna vybraná sedadla jsou do `hold_until` blokována pro ostatní návštěvníky.
 
-State change:
-[none] → DRAFT
+Změna stavu: `[none] -> DRAFT`.
 
-Referenced rules:
-BR-01 Interval semantics.
+Odkaz na pravidla / invarianty: BR-01, BR-02, BR-05.
 
-Main success scenario:
-1. User submits Resource and interval.
-2. System validates authorization, Resource and interval.
-3. System creates Reservation in DRAFT.
-4. System returns the Reservation identifier and current state.
+Hlavní úspěšný scénář:
+1. Uživatel zobrazí sál a vybere jedno nebo více volných sedadel.
+2. Po výběru se zobrazí tlačítko pro pokračování s rezervací.
+3. Uživatel tlačítko stiskne.
+4. Systém v jedné atomické operaci ověří dostupnost všech sedadel a vytvoří
+	`DRAFT`.
+5. Systém vrátí identifikátor rezervace a čas `hold_until`.
+6. Po dobu držení se žádné z vybraných sedadel nezobrazí jako volné jinému
+	uživateli.
 
-Alternative / failure outcomes:
-- unauthorized User → reject; no Reservation created;
-- unknown Resource → reject; no Reservation created;
-- invalid interval → reject; no Reservation created.
+Alternativní / chybové výsledky:
+- neoprávněný uživatel -> odmítnout, rezervace nevznikne;
+- neznámý Resource nebo sedadlo mimo sál -> odmítnout, rezervace nevznikne;
+- některé sedadlo už drží, čeká na schválení nebo je potvrzené -> odmítnout,
+	rezervace nevznikne;
+- vypršené držení -> odmítnout nebo nejdříve atomicky uvolnit;
+- neaktivní rezervační relace po pěti minutách -> držení přejde do
+	`EXPIRED` a sedadla se uvolní.
 
-Verification examples:
-valid Resource + [10:00,11:00) → one DRAFT created
-start == end → rejected
-unknown Resource → rejected
+Příklady ověření:
+- výběr tří sedadel a pokračování -> jedna `DRAFT` pro tři sedadla;
+- dva souběžné pokusy o stejné sedadlo -> nejvýše jedna `DRAFT`;
+- neaktivita po pěti minutách -> `DRAFT -> EXPIRED` a dostupnost se obnoví;
+- `start == end` -> odmítnuto;
+- neznámý Resource -> odmítnuto.
 
-Rationale:
-Creation records user intent without committing Resource allocation.
 
 ## OP-02 — Check Availability
 
-Goal / user value:
-User can determine whether an exclusive Resource is currently
-available for a requested interval.
+Cíl / hodnota pro uživatele:
+Uživatel zjistí, zda je sedadlo pro představení v požadovaném intervalu
+dostupné. V rozhraní se tato kontrola projeví jako mapa sálu: volná sedadla
+lze vybrat a po výběru alespoň jednoho sedadla se zobrazí tlačítko pro
+pokračování s rezervací.
 
-Observable requirement:
-REQ-02:
-For a valid interval, the system shall report a Resource as unavailable
-if the interval overlaps any CONFIRMED Reservation of that Resource;
-otherwise it shall report it as available.
+Spouštěcí událost:
+Uživatel nebo systém se dotáže na Resource a platný interval.
 
-Preconditions:
-- Resource exists.
-- requested interval is valid.
+Pozorovatelný požadavek:
+REQ-02: Pro platné představení systém vrátí `UNAVAILABLE`, pokud existuje
+aktivní `DRAFT`, `PENDING_APPROVAL` nebo `CONFIRMED` rezervace stejného
+sedadla; jinak vrátí `AVAILABLE`.
 
-Success postcondition:
-- availability result is returned;
-- no Reservation state is changed.
+Předpoklady:
+- Resource existuje;
+- interval splňuje BR-01.
 
-Referenced rules:
-BR-01 Interval semantics.
-BR-02 Exclusive Resource invariant.
+Stav po úspěšném provedení:
+- výsledek dostupnosti je vrácen;
+- žádný stav rezervace se nezmění.
 
-Verification examples:
-Existing CONFIRMED: [10:00,11:00)
+Změna stavu: žádná.
 
-query [09:00,10:00) → AVAILABLE
-query [10:30,11:30) → UNAVAILABLE
-query [11:00,12:00) → AVAILABLE
+Odkaz na pravidla / invarianty: BR-01, BR-02, BR-05.
 
-Accepted semantics:
-Intervals are half-open: [start,end).
+Hlavní úspěšný scénář:
+1. Systém ověří Resource a interval.
+2. Systém vyhledá aktivní `DRAFT`, `PENDING_APPROVAL` a `CONFIRMED`
+	rezervace.
+3. Systém vrátí dostupnost.
+
+Alternativní / chybové výsledky:
+- neznámý Resource -> odmítnout;
+- neplatný interval -> odmítnout;
+- `CANCELLED`, `REJECTED` a `EXPIRED` dostupnost neblokují.
+
+Příklady ověření:
+- `CONFIRMED [10:00,11:00)` + dotaz `[09:00,10:00)` -> `AVAILABLE`;
+- stejná rezervace + `[10:30,11:30)` -> `UNAVAILABLE`;
+- stejná rezervace + `[11:00,12:00)` -> `AVAILABLE`;
+
 
 ## OP-03 — Confirm Reservation
 
-Goal / user value:
-A valid DRAFT Reservation becomes the accepted allocation of Resource.
+Cíl / hodnota pro uživatele:
+Systém dokončí `DRAFT` podle počtu sedadel a pravidel schvalování.
 
-Trigger:
-Authorized User requests confirmation of Reservation X.
+Spouštěcí událost:
+Autorizovaný návštěvník požádá o potvrzení rezervace X.
 
-Observable requirements:
-REQ-03:
-The system shall confirm a DRAFT Reservation only when its Resource
-is active and its interval does not conflict with an existing
-CONFIRMED Reservation of the same exclusive Resource.
+Pozorovatelné požadavky:
+REQ-03: Systém nastaví existující `DRAFT` na `CONFIRMED`, pokud obsahuje
+méně než pět sedadel, nebo na `PENDING_APPROVAL`, pokud obsahuje pět či více
+sedadel či celý sál. V obou případech musí být držení platné a všechna
+sedadla aktivní bez kolize s jinou aktivní rezervací.
 
-REQ-04:
-For concurrent confirmation attempts that conflict under BR-02,
-at most one Reservation shall reach CONFIRMED.
+REQ-04: Při souběžných konfliktních pokusech může do `CONFIRMED` nebo
+`PENDING_APPROVAL` přejít nejvýše jedna kolidující rezervace.
 
-Preconditions:
-- Reservation exists.
-- Reservation.state = DRAFT.
+Předpoklady:
+- rezervace existuje a je ve stavu `DRAFT`;
+- uživatel je oprávněn ji potvrdit.
 
-Success postcondition:
-- Reservation.state = CONFIRMED;
-- the Reservation blocks its Resource for its interval;
-- BR-02 remains true.
+Stav po úspěšném provedení:
+- podle větve je rezervace `CONFIRMED` nebo `PENDING_APPROVAL` a všechna
+  její sedadla jsou blokována;
+- BR-02 zůstává splněno.
 
-Failure outcomes:
-- inactive Resource → reject; Reservation remains DRAFT;
-- overlap exists → reject; Reservation remains DRAFT;
-- invalid source state → reject; state unchanged.
+Změna stavu: `DRAFT -> CONFIRMED` nebo `DRAFT -> PENDING_APPROVAL`.
 
-Verification examples:
-DRAFT + active Resource + no overlap → CONFIRMED
-DRAFT + overlap → rejected, remains DRAFT
-two concurrent conflicting confirmations → at most one CONFIRMED
+Odkaz na pravidla / invarianty: BR-01, BR-02, BR-03, BR-04, BR-05.
+
+Hlavní úspěšný scénář:
+1. Systém ověří oprávnění, existenci a stav `DRAFT`.
+2. Ověří počet sedadel, případnou rezervaci celého sálu, platnost držení,
+	aktivní sedadla a kolizi s jinými rezervacemi.
+3. Atomicky nastaví `CONFIRMED` nebo `PENDING_APPROVAL`.
+4. Systém vrátí aktuální stav.
+
+Alternativní / chybové výsledky:
+- neaktivní sedadlo -> odmítnout, stav zůstává `DRAFT`;
+- vypršené držení -> odmítnout a držení přejde do `EXPIRED`;
+- existující kolize -> odmítnout, stav zůstává `DRAFT`;
+- jiný zdrojový stav -> odmítnout bez změny;
+- při souběhu rozhodne atomická změna stavu a pouze jedna kolidující
+	rezervace může být `CONFIRMED` nebo `PENDING_APPROVAL`.
+
+Příklady ověření:
+- aktivní rezervace pro méně než pět sedadel bez kolize -> `CONFIRMED`;
+- aktivní rezervace pro pět nebo více sedadel bez kolize ->
+	`PENDING_APPROVAL`;
+- kolize -> odmítnuto, zůstává `DRAFT`;
+- dva souběžné konfliktní pokusy -> nejvýše jedna rezervace přejde do
+	`CONFIRMED` nebo `PENDING_APPROVAL`.
+
 
 ## OP-04 — Cancel Reservation
 
-Goal / user value:
-An eligible Reservation can be withdrawn and stops blocking Resource.
+Cíl / hodnota pro uživatele:
+Uživatel stáhne oprávněnou rezervaci před začátkem představení.
 
-Observable requirement — EXAMPLE POLICY:
-REQ-05:
-The system shall allow a DRAFT or CONFIRMED Reservation to be
-cancelled before its start time.
+Spouštěcí událost:
+Oprávněný návštěvník požádá o zrušení rezervace X.
 
-Preconditions:
-- Reservation exists.
-- Reservation.state ∈ {DRAFT, CONFIRMED}.
-- currentTime < Reservation.start.
+Pozorovatelný požadavek:
+REQ-05: Systém dovolí zrušit `DRAFT`, `PENDING_APPROVAL` nebo `CONFIRMED`,
+pokud `now < start`. Zrušený záznam zůstane uložen jako `CANCELLED`.
 
-Success postcondition:
-- Reservation.state = CANCELLED;
-- Reservation no longer blocks Resource availability.
+Předpoklady:
+- rezervace existuje;
+- uživatel je k ní oprávněn;
+- stav je `DRAFT`, `PENDING_APPROVAL` nebo `CONFIRMED`;
+- `now < start` podle zdroje času systému.
 
-Failure outcomes:
-- already CANCELLED → [team decides: idempotent success OR explicit rejection];
-- start time reached/passed → reject;
-- Cancel races with Confirm → team defines accepted observable outcome.
+Stav po úspěšném provedení:
+- stav je `CANCELLED`;
+- rezervace neblokuje Resource.
 
-Verification examples:
-DRAFT before start → CANCELLED
-CONFIRMED before start → CANCELLED and Resource becomes available
-CONFIRMED at/after start → rejected according to accepted policy
+Změna stavu: `DRAFT|PENDING_APPROVAL|CONFIRMED -> CANCELLED`.
+
+Odkaz na pravidla / invarianty: BR-01, BR-02, BR-03, BR-05.
+
+Hlavní úspěšný scénář:
+1. Systém ověří existenci, oprávnění, stav a aktuální čas.
+2. Atomicky nastaví `CANCELLED`.
+3. Vrátí stav; všechna sedadla rezervace se okamžitě uvolní.
+
+Alternativní / chybové výsledky:
+- `now >= start` -> odmítnout, stav se nemění;
+- `CANCELLED` -> odmítnout, stav se nemění;
+- `REJECTED` nebo `EXPIRED` -> odmítnout, stav se nemění;
+- souběh s potvrzením -> uspěje pouze první platná atomická změna; druhá
+	obdrží neplatný zdrojový stav nebo odmítnutí podle výsledného stavu.
+
+Příklady ověření:
+- `DRAFT` před začátkem -> `CANCELLED` a sedadla se uvolní;
+- `PENDING_APPROVAL` před začátkem -> `CANCELLED` a všechna sedadla se
+	uvolní;
+- `CONFIRMED` před začátkem -> `CANCELLED` a dostupnost se obnoví;
+- v okamžiku začátku nebo později -> odmítnuto;
+- opakované zrušení -> explicitně odmítnuto.
+
+
+## OP-05 — Approve Reservation
+
+Cíl / hodnota pro uživatele:
+Oprávněná osoba rozhodne o hromadné rezervaci, která čeká na manuální
+schválení.
+
+Spouštěcí událost:
+Schvalovatel požádá o schválení nebo zamítnutí rezervace X ve stavu
+`PENDING_APPROVAL`.
+
+Pozorovatelné požadavky:
+REQ-06: Systém dovolí schvalovateli atomicky změnit `PENDING_APPROVAL` na
+`CONFIRMED` nebo `REJECTED`.
+
+REQ-07: Schválení je možné pouze tehdy, když žádné sedadlo rezervace
+nekoliduje s jinou aktivní rezervací a neuplynula lhůta pro schválení.
+
+Předpoklady:
+- rezervace existuje a je ve stavu `PENDING_APPROVAL`;
+- schvalovatel má oprávnění rozhodnout;
+- `now` je před začátkem představení i před lhůtou pro schválení;
+- všechna sedadla rezervace jsou stále aktivně blokována touto rezervací.
+
+Stav po úspěšném provedení:
+- při schválení je stav `CONFIRMED` a všechna sedadla zůstávají blokována;
+- při zamítnutí je stav `REJECTED` a všechna sedadla se uvolní;
+- rozhodnutí je atomické a opakované rozhodnutí je odmítnuto.
+
+Změna stavu: `PENDING_APPROVAL -> CONFIRMED|REJECTED`.
+
+Odkaz na pravidla / invarianty: BR-02, BR-03, BR-05, BR-06, BR-08.
+
+Hlavní úspěšný scénář:
+1. Systém ověří oprávnění schvalovatele, existenci a stav
+	`PENDING_APPROVAL`.
+2. Ověří lhůtu pro schválení, začátek představení a kolize všech sedadel.
+3. Schvalovatel zvolí schválení nebo zamítnutí.
+4. Systém atomicky nastaví `CONFIRMED` nebo `REJECTED`.
+5. Systém vrátí aktuální stav a výsledek rozhodnutí.
+
+Alternativní / chybové výsledky:
+- neoprávněný aktér -> odmítnout bez změny;
+- jiný zdrojový stav -> odmítnout bez změny;
+- vypršená lhůta nebo neaktivní držení -> atomicky nastavit `EXPIRED`;
+- kolize při schvalování -> schválení odmítnout a stav ponechat
+	`PENDING_APPROVAL`, pokud není dosažena lhůta pro expiraci;
+- souběh schválení, zamítnutí, zrušení a expirace -> uspěje pouze první
+	platný atomický přechod.
+
+Příklady ověření:
+- schválená hromadná rezervace -> `CONFIRMED`, sedadla zůstávají
+	nepřístupná;
+- zamítnutá hromadná rezervace -> `REJECTED`, sedadla jsou dostupná;
+- rozhodnutí po expiraci -> odmítnuto nebo `EXPIRED` podle prvního platného
+	přechodu;
+- běžný návštěvník se schválením -> odmítnuto.
