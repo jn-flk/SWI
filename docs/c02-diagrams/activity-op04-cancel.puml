@@ -10,7 +10,7 @@ if (Rezervace X existuje a uživatel\nje k ní oprávněn?) then (ne)
   stop
 endif
 if (Stav je CANCELLED?) then (ano)
-  :Výsledek dle BR-03 (TBD:\nidempotentní úspěch / odmítnutí);
+  :Vrátit stav CANCELLED –\nidempotentní úspěch (BR-03);\nstav se nemění;
   stop
 endif
 if (Stav ∈ {DRAFT, PENDING_APPROVAL,\nCONFIRMED}?) then (ne)
@@ -21,8 +21,9 @@ if (now < start představení? (BR-03)) then (ne)
   :Odmítnout – představení už začalo;\nstav se nemění;
   stop
 endif
+:Zastavit běžící časovač\n(neaktivita / lhůta schválení);
 :Nastavit stav CANCELLED\n(záznam se nemaže);
-:Sedadlo přestává být blokováno\n(pokud bylo CONFIRMED);
+:Uvolnit blokovaná sedadla;
 :Vrátit stav CANCELLED;
 |Návštěvník|
 :Rezervace je zrušena;

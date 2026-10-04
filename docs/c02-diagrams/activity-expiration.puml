@@ -1,0 +1,22 @@
+@startuml
+title Diagram aktivit – Expirace rezervace
+
+|Systém|
+start
+:Vypršel časovač rezervace X;
+if (Stav = DRAFT\na neaktivita uživatele ≥ 5 min?) then (ano)
+elseif (Stav = PENDING_APPROVAL\na uplynula lhůta schválení (24 h)?) then (ano)
+else (ne)
+  :Nic nedělat\n(už potvrzeno, rozhodnuto nebo zrušeno);
+  stop
+endif
+:Nastavit stav EXPIRED;
+note right
+  Souběh s confirm / approve / cancel:
+  rozhodne ten, kdo změní stav první –
+  druhý dostane „neplatný stav“.
+end note
+:Uvolnit blokovaná sedadla;
+:Upozornit návštěvníka\n(Notification Service);
+stop
+@enduml

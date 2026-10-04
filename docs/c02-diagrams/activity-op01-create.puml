@@ -1,0 +1,43 @@
+@startuml
+title Diagram aktivit – Vytvořit rezervaci
+
+|Návštěvník|
+start
+:Vybere představení a sedadla;
+|Systém|
+if (Uživatel je oprávněn\nvytvářet rezervace?) then (ne)
+  :Odmítnout;\nrezervace nevznikne;
+  stop
+endif
+if (Představení existuje\na ještě nezačalo?) then (ne)
+  :Odmítnout;\nrezervace nevznikne;
+  stop
+endif
+if (Sedadla existují, patří do sálu\npředstavení a jsou aktivní?) then (ne)
+  :Odmítnout;\nrezervace nevznikne;
+  stop
+endif
+if (Některé sedadlo blokuje jiná rezervace\n(DRAFT / PENDING_APPROVAL / CONFIRMED)?) then (ano)
+  :Odmítnout – sedadlo obsazené;\nrezervace nevznikne;
+  stop
+endif
+:Vytvořit rezervaci ve stavu DRAFT\na zablokovat sedadla;
+note right
+  Atomicky s kontrolou obsazenosti –
+  ze dvou souběžných požadavků
+  na stejné sedadlo uspěje jen jeden.
+end note
+:Spustit časovač neaktivity (5 min);
+:Vrátit ID rezervace a stav DRAFT;
+|Návštěvník|
+:Rezervace je v DRAFT,\nsedadla jsou držena;
+switch (Další krok?)
+case (potvrdí)
+  :→ OP-03 Potvrdit rezervaci;
+case (zruší)
+  :→ OP-04 Zrušit rezervaci;
+case (neaktivní ≥ 5 min)
+  :→ Expirace rezervace;
+endswitch
+stop
+@enduml

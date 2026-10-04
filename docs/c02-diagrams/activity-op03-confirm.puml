@@ -10,26 +10,21 @@ if (Rezervace X existuje a uživatel\nje k ní oprávněn?) then (ne)
   stop
 endif
 if (Stav = DRAFT?) then (ne)
-  :Odmítnout – neplatný stav;\nstav se nemění;
+  :Odmítnout – neplatný stav\n(např. už EXPIRED / CANCELLED);\nstav se nemění;
   stop
 endif
-if (Sedadlo je aktivní?) then (ne)
-  :Odmítnout – sedadlo neaktivní;\nzůstává DRAFT;
-  stop
-endif
-if (Překryv s CONFIRMED rezervací\ntéhož sedadla? (BR-02)) then (ano)
-  :Odmítnout – kolize;\nzůstává DRAFT;
-  stop
-endif
-if (Sedadlo vyžaduje schválení?) then (ano)
+note right
+  Kontrola překryvu zde není potřeba –
+  sedadla jsou blokovaná už od DRAFT.
+end note
+:Zastavit časovač neaktivity;
+if (Počet sedadel > 10\nnebo celý sál?) then (ano)
   :Nastavit stav PENDING_APPROVAL;
-  :Spustit lhůtu pro schválení (TBD);
+  :Spustit lhůtu pro schválení (24 h);
+  :Upozornit schvalovatele\n(Notification Service);
+  :→ pokračuje OP-05 Schválit / zamítnout;
 else (ne)
   :Nastavit stav CONFIRMED;
-  note right
-    Atomicky s kontrolou překryvu –
-    nejvýše jedna CONFIRMED (REQ-04).
-  end note
 endif
 :Vrátit aktuální stav rezervace;
 |Návštěvník|
