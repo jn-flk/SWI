@@ -1,17 +1,49 @@
 # C02 - Doménová pravidla a baseline
 
+Změna C02 rozšiřuje rezervaci o výběr více sedadel, schvalování hromadných
+rezervací a automatické vypršení neaktivních nebo dlouho čekajících stavů.
+Hranice pro hromadnou rezervaci je pět a více sedadel; rezervace celého sálu
+vyžaduje schválení vždy. Jedna `Reservation` může obsahovat více sedadel.
+
 ## Stavy rezervace
 
-- `DRAFT`: rezervace vznikla výběrem sedadla a sedadlo je po omezenou dobu
-    dočasně drženo pro daného návštěvníka. Stav má `hold_until`.
-- `CONFIRMED`: návštěvník dokončil formulář a systém rezervaci přijal.
-    Sedadlo je blokováno pro dané představení.
-- `CANCELLED`: rezervace byla zrušena nebo její držení vypršelo. Stav je
-    terminální a sedadlo již není blokováno.
+- `DRAFT`: uživatel vybral jedno nebo více sedadel a pokračoval k rezervaci.
+    Sedadla jsou po omezenou dobu dočasně držena pro daného návštěvníka.
+    Stav má `hold_until`.
+- `PENDING_APPROVAL`: hromadná rezervace byla odeslána ke schválení. Stav je
+    nefinální a všechna její sedadla zůstávají blokována.
+- `CONFIRMED`: běžná rezervace byla přijata nebo hromadná rezervace schválena.
+    Všechna sedadla jsou blokována pro dané představení.
+- `REJECTED`: hromadná rezervace byla zamítnuta schvalovatelem. Stav je
+    terminální a sedadla již nejsou blokována.
+- `CANCELLED`: existující rezervace nebo držení bylo aktivně zrušeno
+    oprávněným aktérem. Stav je terminální a sedadla již nejsou blokována.
+- `EXPIRED`: držení nebo čekání na schválení vypršelo bez aktivního
+    rozhodnutí. Stav je terminální a sedadla již nejsou blokována.
 
-Přechody jsou `[none] -> DRAFT`, `DRAFT -> CONFIRMED`,
-`DRAFT -> CANCELLED` a `CONFIRMED -> CANCELLED`. Držení ve stavu `DRAFT`
-vyprší po dosažení `hold_until` a systém ho převede do `CANCELLED`.
+## Přechody
+
+- `[none] -> DRAFT`: vznikne nová rezervace pro vybraná sedadla a systém je
+    po omezenou dobu drží pro daného návštěvníka.
+- `DRAFT -> CONFIRMED`: běžná rezervace s méně než pěti sedadly je po
+    dokončení uživatelem přijata a sedadla jsou trvale blokována.
+- `DRAFT -> PENDING_APPROVAL`: hromadná rezervace s pěti nebo více sedadly
+    nebo rezervace celého sálu je odeslána ke schválení. Sedadla zůstávají
+    blokována do rozhodnutí nebo vypršení.
+- `DRAFT -> CANCELLED`: návštěvník nebo jiný oprávněný aktér aktivně zruší
+    držení před jeho potvrzením. Sedadla se uvolní.
+- `DRAFT -> EXPIRED`: držení automaticky vyprší, například po ukončení
+    neaktivní rezervační relace. Sedadla se uvolní bez aktivního zrušení.
+- `PENDING_APPROVAL -> CONFIRMED`: schvalovatel hromadnou rezervaci přijme.
+    Sedadla zůstávají trvale blokována.
+- `PENDING_APPROVAL -> REJECTED`: schvalovatel hromadnou rezervaci zamítne.
+    Sedadla se uvolní a žádost je terminálně ukončena.
+- `PENDING_APPROVAL -> EXPIRED`: žádost nebyla schválena před uplynutím
+    stanovené lhůty. Sedadla se uvolní automaticky.
+- `PENDING_APPROVAL -> CANCELLED`: návštěvník nebo jiný oprávněný aktér
+    čekající žádost aktivně zruší před rozhodnutím. Sedadla se uvolní.
+- `CONFIRMED -> CANCELLED`: návštěvník nebo jiný oprávněný aktér aktivně
+    zruší potvrzenou rezervaci před začátkem představení. Sedadla se uvolní.
 
 ## Společná pravidla
 
@@ -20,40 +52,60 @@ Rezervační intervaly používají polouzavřenou sémantiku `[start,end)`. Dot
 na hranici, například `[09:00,10:00)` a `[10:00,11:00)`, není překryv.
 
 BR-02 — Exclusive Resource invariant
-Pro jedno představení nesmí být stejné sedadlo současně drženo nebo potvrzeno
-více než jednou. Aktivní `DRAFT` i `CONFIRMED` proto blokují stejné sedadlo.
+Pro jedno představení nesmí být stejné sedadlo současně součástí více
+aktivních rezervací. Aktivní `DRAFT`, `PENDING_APPROVAL` i `CONFIRMED` proto
+blokují stejné sedadlo.
 
 BR-03 — Cancellation policy
-`DRAFT` a `CONFIRMED` lze zrušit pouze při `now < start`.
-Změna je atomická, záznam se nemaže a opakované zrušení terminálního stavu je
-explicitně odmítnuto.
+`DRAFT`, `PENDING_APPROVAL` a `CONFIRMED` lze aktivně zrušit pouze při
+`now < start`. Změna je atomická, záznam se nemaže a opakované zrušení
+terminálního stavu je explicitně odmítnuto.
 
 BR-04 — Confirmation policy
-OP-03 je přímé potvrzení uživatelem. Při úspěšném potvrzení vzniká
-`CONFIRMED` atomicky s kontrolou platnosti držení a kolize.
+OP-03 je dokončení rezervace uživatelem. U rezervace s méně než pěti sedadly
+vede k `CONFIRMED`; u hromadné rezervace nebo rezervace celého sálu vede k
+`PENDING_APPROVAL`. Přechod je atomický s kontrolou platnosti držení a
+kolize.
 
 BR-05 — Availability policy
-Dostupnost blokují aktivní `DRAFT` a `CONFIRMED` rezervace. `CANCELLED` a
-`DRAFT` po `hold_until` se do výsledku dostupnosti nezapočítávají.
+Dostupnost blokují aktivní `DRAFT`, `PENDING_APPROVAL` a `CONFIRMED`
+rezervace. `CANCELLED`, `REJECTED` a `EXPIRED` se do výsledku dostupnosti
+nezapočítávají.
 
 BR-06 — Concurrent outcome
-Vytvoření držení i jeho potvrzení musí rozhodnout atomická změna s kontrolou
-BR-02. Při závodu dvou návštěvníků uspěje pouze první platné držení; druhý
-uvidí sedadlo jako nedostupné. Při závodu s cancel uspěje první platná změna
-stavu.
+Vytvoření držení, dokončení rezervace, schválení i zrušení musí rozhodnout
+atomická změna s kontrolou BR-02. Při závodu dvou návštěvníků uspěje pouze
+první platná alokace. Při závodu schválení, zrušení a expirace uspěje pouze
+první platný přechod.
 
-BR-07 — Hold policy
-Kliknutí na volné sedadlo vytvoří držení ještě před zobrazením formuláře.
-Dokud držení trvá, jiný návštěvník se nesmí dostat do vytvoření rezervace na
-stejné sedadlo. Po odeslání formuláře se držení buď atomicky potvrdí, nebo se
-uvolní podle výsledku operace.
+BR-07 — Hold and inactivity policy
+Uživatel nejdříve zobrazí sál a vybere jedno nebo více volných sedadel.
+Tlačítko pro pokračování s rezervací se zobrazí až po výběru alespoň jednoho
+sedadla. Po jeho stisku systém atomicky vytvoří jednu `Reservation` pro
+všechna vybraná sedadla ve stavu `DRAFT` s `hold_until`. Neaktivní
+rezervační relace se po pěti minutách ukončí a aktivní držení přejde do
+`EXPIRED`; serverový `hold_until` je autoritativní.
+
+BR-08 — Bulk approval lead time
+Hromadná rezervace musí být vytvořena s dostatečným předstihem před začátkem
+představení, aby zůstala lhůta pro manuální schválení. Konkrétní minimální
+předstih je součástí rezervační politiky; po jeho překročení systém
+hromadnou žádost odmítne vytvořit nebo přijmout ke schválení.
 
 ## Kontrola přijetí požadavků
 
-Požadavky jsou ověřitelné přes stav rezervace, `hold_until`, dostupnost
-sedadla a atomické chování při souběhu. Konkrétní framework ani databáze zde
-nejsou předepsány; implementace musí zachovat pozorovatelné podmínky tohoto
-modelu.
+Požadavky jsou ověřitelné přes stav rezervace, počet jejích sedadel,
+`hold_until`, lhůtu pro schválení, dostupnost sedadel a atomické chování při
+souběhu. Ověřit je nutné také zpožděné schválení, zamítnutí, expiraci a
+uvolnění všech sedadel skupinové rezervace.
+
+## Co se nezměnilo
+
+Intervalová sémantika `[start,end)`, pravidlo jediné aktivní rezervace pro
+sedadlo a představení, možnost zrušení před začátkem představení, použití
+Django ORM, SQLite pro vývoj a externí hranice Notification Service zůstávají
+beze změny. C02 pouze rozšiřuje stavy, aktéry a časový životní cyklus
+rezervace.
 
 
 
@@ -76,7 +128,7 @@ Systém slouží pro návštěvníky divadla, kteří by si chtěli rezervovat s
 ## Users / Stakeholders
 1–3 role.
 
-Návštěvníci divadla
+Návštěvníci divadla; oprávněný schvalovatel rezervací.
 
 ## Core concepts
 Reservation, Resource, User + případně 0–3 další pojmy.
@@ -90,22 +142,17 @@ Reservation, Resource, User + případně 0–3 další pojmy.
 ## Persistent state
 Co ukládáme o Reservation a Resource.
 Resource (sedadlo) - řada, číslo sedadla
-Reservation (konkrétní představení) - časový slot, hra, 
-
-## State-changing operation
-[none] -> DRAFT
-
-DRAFT -> CONFIRMED
-
-DRAFT -> CANCELLED
-
-CONFIRMED -> CANCELLED
+Reservation (konkrétní představení) - časový slot, hra, jedno nebo více
+vybraných sedadel, stav, `hold_until` a případná lhůta pro schválení.
 
 ## Common business rule
 Sedadlo v konkrétním představení může být rezervováno jenom jednou.
 
 ## Domain-specific business rule
-Nelze rezervovat 15 min před začátkem představení.
+Nelze rezervovat 15 min před začátkem představení. Rezervace pěti nebo více
+sedadel je hromadná a vyžaduje schválení. Rezervace celého sálu vyžaduje
+schválení vždy. Hromadnou rezervaci nelze vytvořit bez dostatečného předstihu
+před začátkem představení.
 
 ## External / system boundary
 Notification Service
