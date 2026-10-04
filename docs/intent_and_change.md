@@ -58,14 +58,19 @@ blokují stejné sedadlo.
 
 BR-03 — Cancellation policy
 `DRAFT`, `PENDING_APPROVAL` a `CONFIRMED` lze aktivně zrušit pouze při
-`now < start`. Změna je atomická, záznam se nemaže a opakované zrušení
-terminálního stavu je explicitně odmítnuto.
+`now < start`. Změna je atomická a záznam se nemaže. Opakované zrušení již
+`CANCELLED` rezervace oprávněným aktérem vrací idempotentní úspěch se stavem
+`CANCELLED`, bez další změny a bez ohledu na čas začátku. Stavy `REJECTED`
+a `EXPIRED` zrušit nelze.
 
 BR-04 — Confirmation policy
 OP-03 je dokončení rezervace uživatelem. U rezervace s méně než pěti sedadly
 vede k `CONFIRMED`; u hromadné rezervace nebo rezervace celého sálu vede k
-`PENDING_APPROVAL`. Přechod je atomický s kontrolou platnosti držení a
-kolize.
+`PENDING_APPROVAL`. Přechod je atomický s kontrolou platnosti držení.
+Kolize se kontroluje při vytvoření `DRAFT`; sedadla zůstávají blokována
+také v `PENDING_APPROVAL`. OP-03 ani OP-05 proto dostupnost nebo kolizi
+znovu nekontrolují a při potvrzení či schválení zachovávají existující
+blokování podle BR-02.
 
 BR-05 — Availability policy
 Dostupnost blokují aktivní `DRAFT`, `PENDING_APPROVAL` a `CONFIRMED`
@@ -73,10 +78,12 @@ rezervace. `CANCELLED`, `REJECTED` a `EXPIRED` se do výsledku dostupnosti
 nezapočítávají.
 
 BR-06 — Concurrent outcome
-Vytvoření držení, dokončení rezervace, schválení i zrušení musí rozhodnout
-atomická změna s kontrolou BR-02. Při závodu dvou návštěvníků uspěje pouze
-první platná alokace. Při závodu schválení, zrušení a expirace uspěje pouze
-první platný přechod.
+Vytvoření držení musí atomicky ověřit dostupnost podle BR-02 a zablokovat
+vybraná sedadla. Při závodu dvou návštěvníků o stejné sedadlo uspěje pouze
+první platná alokace. Dokončení rezervace, schválení, zrušení a expirace
+atomicky ověřují zdrojový stav a zachovávají nebo uvolňují existující
+blokování; novou kontrolu kolize neprovádějí. Při závodu schválení, zrušení
+a expirace uspěje pouze první platný přechod.
 
 BR-07 — Hold and inactivity policy
 Uživatel nejdříve zobrazí sál a vybere jedno nebo více volných sedadel.
