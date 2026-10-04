@@ -77,6 +77,7 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
+        'OPTIONS': {'transaction_mode': 'IMMEDIATE', 'timeout': 20},
     }
 }
 
@@ -124,5 +125,21 @@ STATIC_URL = 'static/'
 MAILERS = {
     'default': {
         'BACKEND': 'django.core.mail.backends.console.EmailBackend',
+    },
+}
+
+RESERVATION_DIRECT_SEAT_LIMIT = 10
+RESERVATION_HOLD_MINUTES = 5
+RESERVATION_APPROVAL_HOURS = 24
+RESERVATION_CUTOFF_MINUTES = 15
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {'console': {'class': 'logging.StreamHandler'}},
+    'loggers': {
+        'reservation.notifications': {
+            'handlers': ['console'], 'level': 'INFO', 'propagate': False,
+        },
     },
 }
