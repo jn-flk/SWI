@@ -1,0 +1,28 @@
+@startuml
+title AS-IS — Confirm Reservation
+top to bottom direction
+skinparam componentStyle rectangle
+
+rectangle "Test / Django shell" as Caller
+
+package "Application code — moduly" {
+    component "services.py\nkontroly a přechod" as Services
+    component "models.py\nstav a DB omezení" as Models
+    component "settings.py\npolitika a DB konfigurace" as Settings
+    component "notifications.py\nlog události" as Notifications
+}
+
+database "SQLite" as DB
+component "Django auth" as Auth <<framework>>
+component "Logging" as Log <<runtime>>
+
+Caller --> Services : confirm_reservation
+Services --> Models : načte / uloží přes ORM
+Services --> Settings : čte limity
+Services --> Auth : ověří oprávnění
+Models --> DB : čte / zapisuje přes ORM
+Services --> DB : commit / rollback přes Django
+Services --> Notifications : notify po commitu:\nschvalování / expirace
+Notifications --> Log : logger.info
+
+@enduml
