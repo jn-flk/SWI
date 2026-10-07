@@ -53,8 +53,7 @@ následující podmínky:
   a záznam rezervace i její sedadla zůstávají v historii.
 
 Tento seznam zachycuje dohodnuté a implementované chování. Úplné schválení
-baseline týmem není v repozitáři explicitně doloženo; textové podklady mají
-ještě nesoulady uvedené níže.
+baseline týmem není v repozitáři explicitně doloženo.
 
 ## Předvedené základní operace:
 
@@ -75,7 +74,7 @@ pro reprodukci jsou testy a Django shell; API není součástí aplikace.
 
 Poslední skutečně provedený běh aktuální sady
 [reservation/tests.py](../src/rezervace_divadlo/reservation/tests.py)
-skončil výsledkem **19 testů, všechny prošly**. Django systémová kontrola
+skončil výsledkem **20 testů, všechny prošly**. Django systémová kontrola
 byla bez chyb. Testy používají izolovanou SQLite databázi a řízené hodnoty
 času, takže není potřeba čekat na skutečné timeouty.
 
@@ -135,7 +134,7 @@ způsob volání aplikace; business operace se nadále provádějí přes služb
 
 ## Zbývající předpoklad / neznámá:
 
-- Doplnit chybějící diagram aktivity OP-02 a časové podmínky v diagramech;
+- Doplnit diagram aktivity OP-02 a časové podmínky v diagramech;
   explicitní schválení baseline v0.1/v0.2 týmem není doloženo.
 - Aktuální jednoduché testy neověřují paralelní zápisy, výkon při
   20 souběžných požadavcích ani zachování dat při migraci existující databáze.
@@ -197,6 +196,16 @@ Approval Workflow rozhoduje o approve/reject a Expiration Scheduler pouze
 spouští expiraci. Sekvence používá jen prvky ze statické architektury.
 Runtime mapuje všechny logické prvky do jednoho Django procesu.
 
+| Kontrola | Výsledek |
+|---|---|
+| C02 ↔ G2: architektura realizuje lifecycle, dostupnost, schválení, expiraci a notifikace | PASS |
+| C2 ↔ G2: každá významná odpovědnost má právě jednoho hlavního ownera | PASS |
+| G2 ↔ H1: sekvence používá pouze povolené prvky a závislosti | PASS |
+| H1 ↔ H2: významné operace mají vlastníka v třídním návrhu | PASS |
+| statechart ↔ G3/H1: transition rozhoduje správný owner | PASS |
+| G2 ↔ G4: všechny logické prvky jsou namapované do Django procesu | PASS |
+| ADR ↔ G2/G4: jedna Django aplikace, ORM/SQLite a constraint jsou viditelné | PASS |
+
 AS-IS → TO-BE delta:
 
 | Oblast | AS-IS | TO-BE | Akce |
@@ -219,7 +228,7 @@ Behaviour verification:
 | success path — přímé potvrzení | PASS | `test_ten_seats_confirm_directly_but_eleven_require_approval` |
 | alternative/failure — expirace držení | PASS | `test_confirm_at_hold_deadline_expires_reservation` |
 | alternative/failure — approve/reject | PASS | `test_only_approver_can_decide_and_rejection_releases_seats` |
-| relevant boundary/concurrency rule | PASS | 20 Django testů + `manage.py check`; atomická ochrana a constraint jsou ověřeny sekvenční sadou |
+| relevant boundary/concurrency rule | PARTIAL | 20 Django testů + `manage.py check`; atomická ochrana a constraint jsou ověřeny sekvenční sadou, skutečný paralelní test zatím chybí |
 
 Architecture conformance rule + result:
 
@@ -234,9 +243,9 @@ Výsledek:
   PASS — jediný modul importující logging je notifications.py.
 ```
 
-Remaining uncertainty / risk: Textová specifikace stále obsahuje starší
-hranici 5 sedadel; aktuální implementace, diagramy a evidence používají více
-než 10 sedadel nebo celý sál. Sada neprokazuje výkon při 20 paralelních
-požadavcích ani skutečné doručení a retry externích notifikací.
+Remaining uncertainty / risk: Sada neprokazuje výkon při 20 paralelních
+požadavcích ani skutečné doručení a retry externích notifikací. Samostatně
+není otestován převod existujících dat migrací `0002`.
 
-Commit/tag: změny připraveny v pracovním stromu; commit/tag nebyl vytvořen.
+Commit/tag: `2c9915b` — `docs: G-M diagrams, test implementation, evidence`;
+pozdější dokumentační opravy jsou součástí commitu `699b501`.
