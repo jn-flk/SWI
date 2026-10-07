@@ -1,4 +1,6 @@
+import ast
 from datetime import timedelta
+from pathlib import Path
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser, Permission
@@ -234,3 +236,17 @@ class ReservationTests(TestCase):
         self.assertEqual(expire_reservations(now=deadline), 0)
         with self.assertRaises(ReservationError):
             touch_reservation(self.user, reservation.pk, now=deadline)
+
+    def test_notification_side_effect_is_isolated_to_integration_adapter(self):
+        package = Path(__file__).parent
+        logging_importers = []
+        for source_file in package.glob("*.py"):
+            tree = ast.parse(source_file.read_text(encoding="utf-8"))
+            imports_logging = any(
+                isinstance(node, ast.Import)
+                and any(alias.name == "logging" for alias in node.names)
+                for node in ast.walk(tree)
+            )
+            if imports_logging:
+                logging_importers.append(source_file.name)
+        self.assertEqual(logging_importers, ["notifications.py"])

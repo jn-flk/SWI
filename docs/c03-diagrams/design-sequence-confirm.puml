@@ -1,0 +1,34 @@
+@startuml
+title H1 — Návrhový sekvenční diagram: potvrzení rezervace
+
+actor Návštěvník as Visitor
+participant "Správa rezervací" as RM
+participant "Dostupnost a alokace" as AA
+participant "Schvalovací workflow" as AW
+database "Relační persistence" as DB
+participant "Integrace notifikací" as NI
+participant "Služba notifikací" as NS
+
+Visitor -> RM : potvrdit(id rezervace)
+RM -> DB : načíst a zamknout rezervaci
+RM -> RM : ověřit vlastníka\nzkontrolovat DRAFT a lhůtu držení
+RM -> AA : načíst aktivní alokace\n(bez nové kontroly kolize)
+AA --> RM : sedadla jsou aktivní
+RM -> AW : vyhodnotit schvalovací politiku
+alt přímé potvrzení
+  AW --> RM : přímé potvrzení
+  RM -> DB : nastavit CONFIRMED\nzrušit lhůtu držení
+else vyžaduje schválení
+  AW --> RM : vyžaduje schválení
+  RM -> DB : nastavit PENDING_APPROVAL\nnastavit lhůtu schválení
+  RM -> NI : approval_requested po commitu
+  NI -> NS : odeslat požadavek na notifikaci
+end
+DB --> RM : potvrzená změna rezervace
+RM --> Visitor : aktuální stav rezervace
+
+alt vypršela lhůta držení
+  RM -> DB : nastavit EXPIRED a uvolnit alokace
+  RM --> Visitor : ReservationError(expired)
+end
+@enduml
