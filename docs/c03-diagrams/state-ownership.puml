@@ -1,0 +1,21 @@
+@startuml
+title G3 — Vlastnictví přechodů stavů
+
+state DRAFT
+state PENDING_APPROVAL
+state CONFIRMED
+state REJECTED
+state CANCELLED
+state EXPIRED
+
+[*] --> DRAFT : vytvořit\nvlastník: Správa rezervací\nžadatel: Návštěvník
+DRAFT --> CONFIRMED : potvrdit, přímo\nvlastník: Správa rezervací\nžadatel: Návštěvník
+DRAFT --> PENDING_APPROVAL : potvrdit, vyžaduje schválení\nvlastník: Správa rezervací\nžadatel: Návštěvník
+PENDING_APPROVAL --> CONFIRMED : schválit\nvlastník: Schvalovací workflow\nžadatel: Schvalovatel
+PENDING_APPROVAL --> REJECTED : zamítnout\nvlastník: Schvalovací workflow\nžadatel: Schvalovatel
+DRAFT --> CANCELLED : zrušit\nvlastník: Správa rezervací\nžadatel: Návštěvník
+PENDING_APPROVAL --> CANCELLED : zrušit\nvlastník: Správa rezervací\nžadatel: Návštěvník
+CONFIRMED --> CANCELLED : zrušit\nvlastník: Správa rezervací\nžadatel: Návštěvník
+DRAFT --> EXPIRED : lhůta držení\nvlastník: Plánovač expirace\nžadatel: Plánovač
+PENDING_APPROVAL --> EXPIRED : lhůta schválení\nvlastník: Plánovač expirace\nžadatel: Plánovač
+@enduml
