@@ -116,7 +116,7 @@ Autorizovaný návštěvník požádá o potvrzení rezervace X.
 
 Pozorovatelné požadavky:
 REQ-03: Systém nastaví existující `DRAFT` na `CONFIRMED`, pokud obsahuje
-méně než pět sedadel, nebo na `PENDING_APPROVAL`, pokud obsahuje deset či více
+nejvýše deset sedadel, nebo na `PENDING_APPROVAL`, pokud obsahuje více než deset
 sedadel či celý sál. V obou případech musí být držení platné a všechna
 sedadla aktivní. Sedadla jsou blokována již od vytvoření `DRAFT` podle
 BR-02; kontrola kolize se při potvrzení neopakuje.
@@ -152,8 +152,8 @@ Alternativní / chybové výsledky:
 	přechod z `DRAFT`; další pokus je odmítnut kvůli zdrojovému stavu.
 
 Příklady ověření:
-- aktivní rezervace pro méně než pět sedadel -> `CONFIRMED`;
-- aktivní rezervace pro pět nebo více sedadel ->
+- aktivní rezervace pro nejvýše deset sedadel -> `CONFIRMED`;
+- aktivní rezervace pro více než deset sedadel ->
 	`PENDING_APPROVAL`;
 - potvrzení zachová blokování sedadel vytvořené při OP-01 bez nové
 	kontroly dostupnosti;

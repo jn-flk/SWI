@@ -2,7 +2,7 @@
 
 Změna C02 rozšiřuje rezervaci o výběr více sedadel, schvalování hromadných
 rezervací a automatické vypršení neaktivních nebo dlouho čekajících stavů.
-Hranice pro hromadnou rezervaci je pět a více sedadel; rezervace celého sálu
+Hranice pro hromadnou rezervaci je více než deset sedadel; rezervace celého sálu
 vyžaduje schválení vždy. Jedna `Reservation` může obsahovat více sedadel.
 
 ## Stavy rezervace
@@ -25,9 +25,9 @@ vyžaduje schválení vždy. Jedna `Reservation` může obsahovat více sedadel.
 
 - `[none] -> DRAFT`: vznikne nová rezervace pro vybraná sedadla a systém je
     po omezenou dobu drží pro daného návštěvníka.
-- `DRAFT -> CONFIRMED`: běžná rezervace s méně než pěti sedadly je po
+- `DRAFT -> CONFIRMED`: běžná rezervace s nejvýše deseti sedadly je po
     dokončení uživatelem přijata a sedadla jsou trvale blokována.
-- `DRAFT -> PENDING_APPROVAL`: hromadná rezervace s pěti nebo více sedadly
+- `DRAFT -> PENDING_APPROVAL`: hromadná rezervace s více než deseti sedadly
     nebo rezervace celého sálu je odeslána ke schválení. Sedadla zůstávají
     blokována do rozhodnutí nebo vypršení.
 - `DRAFT -> CANCELLED`: návštěvník nebo jiný oprávněný aktér aktivně zruší
@@ -64,7 +64,7 @@ BR-03 — Cancellation policy
 a `EXPIRED` zrušit nelze.
 
 BR-04 — Confirmation policy
-OP-03 je dokončení rezervace uživatelem. U rezervace s méně než pěti sedadly
+OP-03 je dokončení rezervace uživatelem. U rezervace s nejvýše deseti sedadly
 vede k `CONFIRMED`; u hromadné rezervace nebo rezervace celého sálu vede k
 `PENDING_APPROVAL`. Přechod je atomický s kontrolou platnosti držení.
 Kolize se kontroluje při vytvoření `DRAFT`; sedadla zůstávají blokována
@@ -156,7 +156,7 @@ vybraných sedadel, stav, `hold_until` a případná lhůta pro schválení.
 Sedadlo v konkrétním představení může být rezervováno jenom jednou.
 
 ## Domain-specific business rule
-Nelze rezervovat 15 min před začátkem představení. Rezervace pěti nebo více
+Nelze rezervovat 15 min před začátkem představení. Rezervace více než deseti
 sedadel je hromadná a vyžaduje schválení. Rezervace celého sálu vyžaduje
 schválení vždy. Hromadnou rezervaci nelze vytvořit bez dostatečného předstihu
 před začátkem představení.

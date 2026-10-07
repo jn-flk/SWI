@@ -107,8 +107,8 @@ Doklady níže uvádějí soubor a funkci/model. [Testy](../src/rezervace_divadl
 
 | Specifikace | Implementace | Doklad |
 |---|---|---|
-| BR-04 uvádí schválení od 5 sedadel; REQ-03 má rozporné hranice. | Schválení nad 10 sedadel nebo pro celý sál. | [services.py][services]: `_requires_approval`; [settings.py][settings]: limit 10; test `test_ten_seats_confirm_directly_but_eleven_require_approval` |
-| BR-08 neuvádí přesný předstih. | Alespoň 24 h před začátkem. | [services.py][services]: `_check_lead_time`; [settings.py][settings]: `RESERVATION_APPROVAL_HOURS` |
+| Hranice schvalování je sjednocena v aktuální specifikaci a implementaci. | Schválení nad 10 sedadel nebo pro celý sál. | [services.py][services]: `_requires_approval`; [settings.py][settings]: limit 10; test `test_ten_seats_confirm_directly_but_eleven_require_approval` |
+| BR-08 používá politiku minimálního předstihu. | Alespoň 24 h před začátkem při Create i Confirm. | [services.py][services]: `_check_lead_time`; [settings.py][settings]: `RESERVATION_APPROVAL_HOURS` |
 
 ### Hlavní části implementace
 

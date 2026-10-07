@@ -109,13 +109,13 @@ Příkazy z kořene repozitáře:
 - Opakované Cancel a kontrola kolize při Confirm/Approve se lišily mezi
   textem a diagramy. Text i implementace nyní používají idempotentní
   Cancel a blokování od Create bez opakované kontroly kolize.
-- Hranice schvalování byla rozhodnuta jako více než 10 sedadel podle
-  diagramů. Implementace a testy tomu odpovídají, ale `intent_and_change.md`
-  stále uvádí pět a více sedadel a OP-03 v `operations.md` obsahuje
-  neslučitelné hranice. Tento dokumentační nesoulad zůstává otevřený.
-- BR-08 dosud neurčuje konkrétní předstih, zatímco implementace podle
-  rozhodnutí uživatele vyžaduje 24 hodin. Text je třeba sjednotit také
-  s lhůtou schválení a povolenými výsledky souběhu.
+- Hranice schvalování byla sjednocena na nejvýše 10 sedadel pro přímé
+  potvrzení a více než 10 sedadel nebo celý sál pro `PENDING_APPROVAL`.
+  Implementace, testy, `intent_and_change.md` i OP-03 v `operations.md`
+  nyní používají stejnou hranici.
+- BR-08 je v souladu s implementací konkretizován jako minimální předstih
+  24 hodin při vytvoření i potvrzení hromadné rezervace. Schvalovací lhůta
+  je rovněž 24 hodin.
 - Na žádost uživatele bylo odstraněno API a testování sjednoceno do
   `tests.py`. Aktuální evidence proto neuvádí API ani původní rozsáhlejší
   sadu jako současnou součást aplikace.
@@ -135,8 +135,6 @@ způsob volání aplikace; business operace se nadále provádějí přes služb
 
 ## Zbývající předpoklad / neznámá:
 
-- Sjednotit textovou specifikaci s přijatou hranicí více než 10 sedadel,
-  24hodinovým předstihem a sériovým posouzením stavů při souběhu.
 - Doplnit chybějící diagram aktivity OP-02 a časové podmínky v diagramech;
   explicitní schválení baseline v0.1/v0.2 týmem není doloženo.
 - Aktuální jednoduché testy neověřují paralelní zápisy, výkon při
