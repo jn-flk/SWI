@@ -1,0 +1,83 @@
+@startuml
+!pragma layout smetana
+title C03 — Doménový model (slice Confirm / Approve Reservation)
+hide circle
+hide empty methods
+skinparam classAttributeIconSize 0
+
+class Play {
+  title
+  duration
+}
+
+class Hall {
+  name
+}
+
+class Seat {
+  row
+  number
+  isActive
+}
+
+class Performance {
+  startAt
+}
+
+class Reservation {
+  status : ReservationStatus
+  holdUntil [0..1]
+  approvalDeadline [0..1]
+  createdAt
+}
+
+class SeatAllocation {
+  active
+}
+
+class User
+
+enum ReservationStatus {
+  DRAFT
+  PENDING_APPROVAL
+  CONFIRMED
+  REJECTED
+  CANCELLED
+  EXPIRED
+}
+
+class ApprovalPolicy <<rule>> {
+  directSeatLimit = 10
+  approvalLeadTime = 24 h
+  approvalWindow = 24 h
+  cutoff = 15 min
+}
+
+Hall "1" *-- "1..*" Seat
+Play "1" -- "0..*" Performance
+Hall "1" -- "0..*" Performance : hraje se v
+Performance "1" -- "0..*" Reservation : pro
+User "1" -- "0..*" Reservation : vlastní >
+User "0..1" .. "0..*" Reservation : rozhoduje (role schvalovatel) >
+Reservation "1" *-- "1..*" SeatAllocation
+Seat "1" -- "0..*" SeatAllocation
+Reservation ..> ApprovalPolicy : vyžaduje schválení?
+
+note bottom of SeatAllocation
+  BR-02: pro (Performance, Seat)
+  nejvýše jedna aktivní alokace.
+  Sedadlo patří do sálu představení.
+end note
+
+note right of Reservation
+  DRAFT ⇒ holdUntil
+  PENDING_APPROVAL ⇒ approvalDeadline
+  aktivní = DRAFT | PENDING_APPROVAL | CONFIRMED
+  terminální stav ⇒ všechny alokace neaktivní
+end note
+
+note bottom of ApprovalPolicy
+  Schválení: > 10 sedadel nebo celý sál.
+  Konkrétní hodnoty jsou konfigurace.
+end note
+@enduml
