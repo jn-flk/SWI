@@ -1,0 +1,49 @@
+@startuml
+title H2 — Zaměřený návrhový třídní diagram
+hide circle
+skinparam classAttributeIconSize 0
+
+class Reservation {
+  stav
+  lhůta_držení
+  lhůta_schválení
+  potvrdit()
+  zrušit()
+}
+class ReservationSeat {
+  aktivní
+}
+class Performance {
+  začátek
+}
+class Seat {
+  aktivní
+}
+class ApprovalPolicy <<rule>> {
+  vyžaduje_schválení()
+  zkontrolovat_předstih()
+}
+class ReservationManagement <<service>> {
+  potvrdit_rezervaci()
+  zrušit_rezervaci()
+}
+interface AllocationRepository {
+ aktivní_alokace(představení, sedadla)
+ uvolnit(rezervaci)
+}
+interface NotificationPort {
+ notifikovat(id_rezervace, událost)
+}
+class NotificationIntegration <<adaptér>>
+
+Reservation "1" *-- "1..*" ReservationSeat : obsahuje
+ReservationSeat "*" --> "1" Seat : odkazuje na
+Reservation "*" --> "1" Performance : pro
+ReservationManagement --> Reservation : vlastní přechod životního cyklu
+ReservationManagement --> AllocationRepository : hranice alokací
+ReservationManagement --> ApprovalPolicy : vyhodnocuje pravidlo
+ReservationManagement --> NotificationPort : událost po commitu
+NotificationIntegration ..|> NotificationPort
+ApprovalPolicy --> Performance : kontrola předstihu
+AllocationRepository --> ReservationSeat : aktivní alokace
+@enduml
