@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -38,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'reservation',
+    'notification.apps.NotificationConfig',
 ]
 
 MIDDLEWARE = [
@@ -138,8 +140,17 @@ LOGGING = {
     'disable_existing_loggers': False,
     'handlers': {'console': {'class': 'logging.StreamHandler'}},
     'loggers': {
-        'reservation.notifications': {
+        'notification': {
             'handlers': ['console'], 'level': 'INFO', 'propagate': False,
         },
     },
 }
+
+# The default sender logs locally. Use HttpSender and a URL for external delivery.
+NOTIFICATION_SENDER = os.environ.get("NOTIFICATION_SENDER", "notification.adapters.LoggingSender")
+NOTIFICATION_SERVICE_URL = os.environ.get("NOTIFICATION_SERVICE_URL", "")
+NOTIFICATION_TIMEOUT_SECONDS = int(os.environ.get("NOTIFICATION_TIMEOUT_SECONDS", "5"))
+NOTIFICATION_LEASE_SECONDS = int(os.environ.get("NOTIFICATION_LEASE_SECONDS", "60"))
+NOTIFICATION_MAX_ATTEMPTS = int(os.environ.get("NOTIFICATION_MAX_ATTEMPTS", "5"))
+NOTIFICATION_BACKOFF_SECONDS = int(os.environ.get("NOTIFICATION_BACKOFF_SECONDS", "10"))
+NOTIFICATION_MAX_BACKOFF_SECONDS = int(os.environ.get("NOTIFICATION_MAX_BACKOFF_SECONDS", "3600"))

@@ -8,7 +8,8 @@ from django.db import IntegrityError, OperationalError, transaction
 from django.db.models import Q
 from django.utils import timezone
 
-from . import notifications
+from notification.services import record_notification
+
 from .models import Performance, Reservation, ReservationSeat, Seat
 
 Status = Reservation.Status
@@ -123,9 +124,7 @@ def _check_lead_time(performance, now, approval_required):
 
 
 def _notify(reservation, event):
-    transaction.on_commit(
-        lambda: notifications.notify(reservation.pk, event), robust=True
-    )
+    record_notification(reservation, event)
 
 
 def _set_status(reservation, status):

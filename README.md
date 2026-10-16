@@ -26,7 +26,7 @@ python3 -m venv venv
 source venv/bin/activate
 pip install django
 python src/rezervace_divadlo/manage.py migrate
-python src/rezervace_divadlo/manage.py test reservation
+python src/rezervace_divadlo/manage.py test notification reservation
 ```
 
 ## CP1 – základní průchod aplikací
@@ -70,7 +70,7 @@ Expiraci lze zpracovat příkazem Django:
 python src/rezervace_divadlo/manage.py expire_reservations
 ```
 
-Pro průběžnou expiraci lze příkaz spustit s `--watch --interval 1`, případně zajistit pravidelné spouštění plánovačem. Služba oznámení je oddělena přes `reservation/notifications.py`; aktuálně pouze zapisuje události do protokolu, externí doručování oznámení je potřeba dopojit.
+Pro průběžnou expiraci lze příkaz spustit s `--watch --interval 1`, případně zajistit pravidelné spouštění plánovačem. Oznámení vlastní Django aplikace `notification`: rezervační služby zapisují požadavky do outboxu atomicky se změnou rezervace. Samostatný dispatcher doručuje oznámení s retry a backoffem; výchozí adaptér zapisuje do logu.
 
 ### Ověření a dopad na architekturu
 

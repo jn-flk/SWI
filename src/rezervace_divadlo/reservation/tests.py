@@ -1,6 +1,4 @@
-import ast
 from datetime import timedelta
-from pathlib import Path
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser, Permission
@@ -237,16 +235,15 @@ class ReservationTests(TestCase):
         with self.assertRaises(ReservationError):
             touch_reservation(self.user, reservation.pk, now=deadline)
 
-    def test_notification_side_effect_is_isolated_to_integration_adapter(self):
-        package = Path(__file__).parent
-        logging_importers = []
-        for source_file in package.glob("*.py"):
-            tree = ast.parse(source_file.read_text(encoding="utf-8"))
-            imports_logging = any(
-                isinstance(node, ast.Import)
-                and any(alias.name == "logging" for alias in node.names)
-                for node in ast.walk(tree)
-            )
-            if imports_logging:
-                logging_importers.append(source_file.name)
-        self.assertEqual(logging_importers, ["notifications.py"])
+    def test_confirmation_enqueues_notification_without_inline_delivery(self):
+        from unittest.mock import patch
+        from notification.models import NotificationRequest
+
+        reservation = self.create(11)
+        with patch("notification.adapters.LoggingSender.send") as send:
+            confirm_reservation(self.user, reservation.pk, now=self.now)
+        send.assert_not_called()
+        item = NotificationRequest.objects.get(reservation_id=reservation.pk)
+        self.assertEqual(item.event, "approval_requested")
+        self.assertEqual(item.status, NotificationRequest.Status.PENDING)
+        self.assertEqual(item.payload["status"], Reservation.Status.PENDING_APPROVAL)
