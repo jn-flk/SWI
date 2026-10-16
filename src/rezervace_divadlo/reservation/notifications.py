@@ -1,9 +1,10 @@
-"""Local Notification Service adapter for C02; no external messages are sent."""
+"""Compatibility entry point; new code should use notification.services."""
 
-import logging
+from notification.services import record_notification
 
-logger = logging.getLogger(__name__)
+from .models import Reservation
 
 
 def notify(reservation_id, event):
-    logger.info("Reservation %s: %s", reservation_id, event)
+    """Enqueue within the caller's transaction; never contact the sender inline."""
+    return record_notification(Reservation.objects.get(pk=reservation_id), event)
