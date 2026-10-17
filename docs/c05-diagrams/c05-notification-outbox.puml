@@ -1,0 +1,42 @@
+@startuml
+title C05 - Doručování notifikací přes outbox
+hide circle
+skinparam componentStyle rectangle
+
+package "Rezervační aplikace" {
+  component "Rezervační služby" as RS
+}
+
+package "Notifikační aplikace" {
+  component "record_notification()" as RN
+  database "NotificationRequest\n(outbox)" as OR
+  component "Dispatcher" as D
+  interface "NotificationSender" as NS
+  component "LoggingSender" as LS
+  component "HttpSender" as HS
+  component "Příkaz dispatch_notifications" as CMD
+}
+
+cloud "Externí notifikační služba" as EXT
+
+RS --> RN : záznam události\nuvnitř transakce
+RN --> OR : INSERT PENDING\n(snapshot dat)
+CMD --> D : batch_size\nrežim watch / interval
+D --> OR : převzetí lease\npodmíněná změna
+D --> NS : send(NotificationMessage)
+LS ..|> NS
+HS ..|> NS
+HS --> EXT : HTTP POST\nIdempotency-Key = message.id
+
+note right of OR
+Trvalý stav:
+PENDING, SENT, FAILED
+attempts, next_attempt_at
+claim_token, claimed_until
+end note
+
+note bottom of D
+Externí I/O probíhá mimo databázové transakce.
+Doručení je typu at-least-once.
+end note
+@enduml

@@ -249,3 +249,88 @@ není otestován převod existujících dat migrací `0002`.
 
 Commit/tag: `2c9915b` — `docs: G-M diagrams, test implementation, evidence`;
 pozdější dokumentační opravy jsou součástí commitu `699b501`.
+
+## C05 DD Verification Evidence
+
+### Testy odvozené z detailního návrhu
+
+| DD element / decision | What must hold? | Test level | Test case |
+|---|---|---|---|
+| Transakční hranice outboxu | Vložení outbox záznamu se při rollbacku vrátí společně s transakcí rezervace. | komponentový | `test_outbox_record_is_rolled_back_with_its_transaction` |
+| Kontrakt senderu a snapshot | Sender obdrží uložený snapshot mimo databázovou transakci a ID zůstane stabilní. | komponentový | `test_success_sends_snapshot_outside_transaction_and_marks_sent` |
+| Algoritmus opakování | Neúspěšný pokus uloží chybu, zachová ID a naplánuje přesnou prodlevu. | jednotkový/komponentový | `test_failure_schedules_retry_at_exact_deadline_with_stable_id` |
+| Větev backoffu | Prodleva se zdvojnásobuje a nepřekročí nastavené maximum. | jednotkový/komponentový | `test_backoff_doubles_and_is_capped` |
+| Terminální selhání | Maximální počet pokusů nastaví `FAILED` a zpráva se znovu neodešle. | komponentový | `test_final_failure_stops_retries` |
+| Obnova lease | Expirovaný lease se převezme novým tokenem při zachování ID zprávy. | komponentový | `test_expired_lease_is_recovered_with_same_message_id` |
+| Fencing invariant | Pozdní worker nemůže přepsat novější claim. | komponentový | `test_late_worker_cannot_overwrite_new_claim_on_success_or_failure` |
+| Kontrakt HTTP adaptéru | HTTP sender odešle JSON, timeout a idempotency klíč; chyby se propagují. | jednotkový | `test_http_posts_snapshot_with_idempotency_key_and_timeout`, `test_http_transport_and_server_errors_propagate_for_retry` |
+| Provozní rozhraní | Jednorázový příkaz zpracuje dávku a vypíše počty; neplatné volby selžou. | komponentový | `test_one_shot_command_dispatches_and_prints_counts`, `test_invalid_command_options_are_rejected` |
+
+### Vybrané úrovně testů
+
+**Transakční hranice outboxu — komponentová úroveň.** Chování prochází přes
+`reservation.services`, správu transakcí Django a `NotificationRequest`, takže
+jednotkový test s mockovanou persistencí by neověřil rozhodnutí o atomicitě.
+Skutečná transakční testovací databáze prokazuje, že rollback odstraní outbox
+záznam.
+
+**Kontrakt HTTP senderu — jednotková úroveň.** `HttpSender` je izolován za
+`urlopen`; test nahrazuje pouze síťovou hranici a ověřuje tvar požadavku,
+timeout a idempotency hlavičku bez kontaktování externí služby.
+
+**Fencing pozdního workeru — komponentová úroveň.** Podmíněná databázová změna
+je návrhové rozhodnutí, které test ověřuje. Test simuluje náhradní claim mezi
+odesláním a potvrzením a ověří, že zastaralý worker nezmění žádný stav.
+
+### Spuštěné jednotkové a komponentové testy
+
+Příkaz spuštěný z adresáře `src\rezervace_divadlo`:
+
+```text
+python manage.py test notification reservation
+```
+
+Výsledek:
+
+```text
+Ran 40 tests
+OK
+System check identified no issues (0 silenced).
+```
+
+Sada nesimuluje oddělené procesy operačního systému ani zamykání řádků
+v produkčním stylu mezi více databázovými spojeními.
+
+### Nesoulad návrhu a implementace
+
+| DD decision | Implemented? | Evidence | Action |
+|---|---|---|---|
+| Zapsat outbox uvnitř transakce rezervace | ANO | `notification/services.py:record_notification`; `reservation/services.py:_notify` | zachovat |
+| Zachovat payload jako neměnný event snapshot | ANO | `NotificationRequest.payload`; konstrukce `NotificationMessage` | zachovat |
+| Claim s lease a token fencingem | ANO | `notification/dispatcher.py:_claim`, podmíněný `owned.update` | zachovat |
+| Externí I/O mimo databázovou transakci | ANO | kontrola v dispatcheru a test úspěšné cesty | zachovat |
+| Opakování s omezeným exponenciálním backoffem | ANO | výpočet v dispatcheru a test backoffu | zachovat |
+| Stabilní ID / idempotence přijímače | ANO | UUID primární klíč, `Idempotency-Key`, test adaptéru | zachovat |
+| Oddělit skutečný a neznámý externí výsledek | ČÁSTEČNĚ | Lokální stavy jsou pouze `SENT`/`FAILED`; pád po odeslání může být nejednoznačný | zdokumentovat riziko |
+| Prokázat paralelní claimy na produkční databázi | ČÁSTEČNĚ | Pouze sekvenční testy; SQLite se liší od databází se zamykáním řádků | doplnit později |
+
+### Vyřešení
+
+Původní popis C03 s `on_commit` a pouze logovacím adaptérem je historická
+baseline. C05 jej nahrazuje transakčním outboxem a asynchronním dispatcherem.
+Implementace a testy odpovídají aktualizovaným rozhodnutím C05; změna kódu
+není nutná.
+
+### Zbývající návrhová rizika
+
+- Doručení typu at-least-once může po pádu workeru vytvořit duplicity.
+- Přijímač ignorující `Idempotency-Key` může duplicity skutečně zaznamenat.
+- Lokální `FAILED` neprokazuje, že externí služba zprávu nepřijala.
+- SQLite testy nepotvrzují chování při produkčním zamykání řádků.
+- Payload nyní obsahuje ID a stav, nikoli verzované veřejné schéma.
+
+### Commit / tag
+
+Implementační baseline: `a23efc8` — `integrated notification app to the system`.
+Tato dokumentace C05 a zaměřený diagram `.puml` představují důkazní změnu
+pro implementovanou část notifikační služby.
