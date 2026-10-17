@@ -4,6 +4,7 @@ import json
 import uuid
 from datetime import timedelta
 from io import StringIO
+from types import SimpleNamespace
 from unittest.mock import Mock, patch
 from urllib.error import HTTPError, URLError
 
@@ -16,6 +17,40 @@ from django.utils import timezone
 from .adapters import HttpSender, LoggingSender, NotificationMessage
 from .dispatcher import dispatch_notifications
 from .models import NotificationRequest
+from .services import record_notification
+
+
+class RecordNotificationContractTests(TransactionTestCase):
+    # Not TestCase: its wrapping transaction would hide the outside-transaction precondition.
+    def setUp(self):
+        # Stub instead of a Reservation row: the contract only reads these four fields.
+        self.reservation = SimpleNamespace(pk=11, owner_id=7, performance_id=3,
+                                           status="PENDING_APPROVAL")
+
+    def test_recording_outside_transaction_is_rejected_without_writing(self):
+        with self.assertRaisesMessage(RuntimeError, "reservation transaction"):
+            record_notification(self.reservation, "approval_requested")
+        self.assertFalse(NotificationRequest.objects.exists())
+
+    def test_unsupported_event_is_rejected_without_writing(self):
+        with transaction.atomic(), self.assertRaisesMessage(ValueError, "cancelled"):
+            record_notification(self.reservation, "cancelled")
+        self.assertFalse(NotificationRequest.objects.exists())
+
+    def test_snapshot_and_audience_follow_event(self):
+        for event, audience in [("approval_requested", "approvers"), ("approved", "owner"),
+                                ("rejected", "owner"), ("expired", "owner")]:
+            with self.subTest(event=event):
+                with transaction.atomic():
+                    item = record_notification(self.reservation, event)
+                item.refresh_from_db()
+                self.assertEqual(item.reservation_id, 11)
+                self.assertEqual(item.event, event)
+                self.assertEqual(item.status, NotificationRequest.Status.PENDING)
+                self.assertEqual(item.attempts, 0)
+                self.assertEqual(item.payload, dict(
+                    owner_id=7, performance_id=3, status="PENDING_APPROVAL", audience=audience,
+                ))
 
 
 class NotificationDispatchTests(TransactionTestCase):
