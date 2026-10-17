@@ -535,6 +535,8 @@ claim_token=current)`; to je fencing proti pozdnímu workeru.
 
 Focused structural view: [c05-notification-outbox.puml](c05-diagrams/c05-notification-outbox.puml).
 
+![C05 — Doručování notifikací přes outbox](c05-diagrams/c05-notification-outbox.png)
+
 ### C03 baseline -> skutečný návrh C05
 
 | Předpoklad C03 | Návrhové rozhodnutí C05 |

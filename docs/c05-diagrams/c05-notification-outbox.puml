@@ -5,10 +5,10 @@ skinparam componentStyle rectangle
 
 package "Rezervační aplikace" {
   component "Rezervační služby" as RS
-  component "record_notification()" as RN
 }
 
 package "Notifikační aplikace" {
+  component "record_notification()" as RN
   database "NotificationRequest\n(outbox)" as OR
   component "Dispatcher" as D
   interface "NotificationSender" as NS
