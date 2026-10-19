@@ -1,10 +1,15 @@
 from datetime import timedelta
+from unittest.mock import Mock, patch
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser, Permission
-from django.test import TestCase
+from django.test import TestCase, TransactionTestCase
 from django.utils import timezone
 
+from notification.dispatcher import dispatch_notifications
+from notification.models import NotificationRequest
+
+from . import services
 from .models import Hall, Performance, Play, Reservation, Seat
 from .services import (
     ReservationError,
@@ -18,7 +23,7 @@ from .services import (
 )
 
 
-class ReservationTests(TestCase):
+class ReservationFixture:
     def setUp(self):
         self.now = timezone.now().replace(microsecond=0)
         self.user = get_user_model().objects.create_user(username="visitor")
@@ -43,6 +48,8 @@ class ReservationTests(TestCase):
             [seat.pk for seat in self.seats[:count]], now=self.now,
         )
 
+
+class ReservationTests(ReservationFixture, TestCase):
     def test_create_confirm_cancel_preserves_history_and_releases_seats(self):
         reservation = self.create(3)
         loaded = Reservation.objects.get(pk=reservation.pk)
@@ -247,3 +254,65 @@ class ReservationTests(TestCase):
         self.assertEqual(item.event, "approval_requested")
         self.assertEqual(item.status, NotificationRequest.Status.PENDING)
         self.assertEqual(item.payload["status"], Reservation.Status.PENDING_APPROVAL)
+
+    def test_outbox_record_and_status_change_share_one_transaction(self):
+        record = services.record_notification
+
+        def crash_after_insert(reservation, event):
+            record(reservation, event)
+            raise RuntimeError("crash before commit")
+
+        for name, failure in (("crash after outbox insert", crash_after_insert),
+                              ("outbox insert fails", RuntimeError("outbox unavailable"))):
+            with self.subTest(name):
+                reservation = self.create(11)
+                with patch("reservation.services.record_notification", side_effect=failure), \
+                        self.assertRaises(RuntimeError):
+                    confirm_reservation(self.user, reservation.pk, now=self.now)
+                reservation.refresh_from_db()
+                self.assertEqual(reservation.status, Reservation.Status.DRAFT)
+                self.assertIsNone(reservation.approval_deadline)
+                self.assertFalse(NotificationRequest.objects.exists())
+                cancel_reservation(self.user, reservation.pk, now=self.now)
+
+    def test_decision_and_expiry_enqueue_owner_notifications(self):
+        rejected = self.create(11)
+        confirm_reservation(self.user, rejected.pk, now=self.now)
+        approve_reservation(self.approver, rejected.pk, approve=False, now=self.now)
+        expired = self.create(11)
+        pending = confirm_reservation(self.user, expired.pk, now=self.now)
+        expire_reservations(now=pending.approval_deadline)
+        for reservation, event in ((rejected, "rejected"), (expired, "expired")):
+            with self.subTest(event=event):
+                items = NotificationRequest.objects.filter(reservation_id=reservation.pk)
+                self.assertEqual(
+                    {(item.event, item.payload["audience"]) for item in items},
+                    {("approval_requested", "approvers"), (event, "owner")},
+                )
+
+
+class ReservationNotificationFlowTests(ReservationFixture, TransactionTestCase):
+    # The dispatcher refuses to run inside a transaction, so TestCase cannot host this flow.
+    def test_committed_transitions_are_delivered_through_sender(self):
+        reservation = self.create(11)
+        confirm_reservation(self.user, reservation.pk, now=self.now)
+        approve_reservation(self.approver, reservation.pk, now=self.now)
+        sender = Mock()
+        self.assertEqual(dispatch_notifications(sender=sender),
+                         dict(attempted=2, sent=2, retried=0, failed=0))
+        messages = {call.args[0].event: call.args[0] for call in sender.send.call_args_list}
+        self.assertEqual(set(messages), {"approval_requested", "approved"})
+        for event, audience, status in (
+            ("approval_requested", "approvers", Reservation.Status.PENDING_APPROVAL),
+            ("approved", "owner", Reservation.Status.CONFIRMED),
+        ):
+            with self.subTest(event=event):
+                message = messages[event]
+                self.assertEqual(message.reservation_id, reservation.pk)
+                self.assertEqual(message.payload, dict(
+                    owner_id=self.user.pk, performance_id=self.performance.pk,
+                    status=status, audience=audience,
+                ))
+                item = NotificationRequest.objects.get(pk=message.id)
+                self.assertEqual(item.status, NotificationRequest.Status.SENT)
+        self.assertEqual(dispatch_notifications(sender=sender)["attempted"], 0)
