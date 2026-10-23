@@ -79,14 +79,12 @@ python src/rezervace_divadlo/manage.py migrate
 python src/rezervace_divadlo/manage.py measure_reservation_concurrency --workers 20 --rounds 5
 ```
 
-The measurement uses an isolated temporary dataset and cleans it up after the
-run. It reports whether the single-seat winner invariant holds, database
-`busy` outcomes, latency and throughput.
+Měření využívá izolovanou dočasnou datovou sadu, kterou po skončení běhu odstraní. Výsledky zahrnují informaci o tom, zda platí invariant vítěze v případě jednoho křesla, dále database `busy` výsledky, latenci a propustnost.
 
 ### Ověření a dopad na architekturu
 
 `reservation/tests.py` obsahuje 23 testů služeb bez API a `notification/tests.py`
-obsahuje 24 testů outboxu a dispatcheru (47 testů celkem). Pokrývají například hranici 10/11
+obsahuje 24 testů outboxu a dispatcheru (48 testů celkem). Pokrývají například hranici 10/11
 sedadel, rezervaci celého malého sálu, předstih 24 hodin, hranici 15 minut,
 expiraci přesně při uplynutí lhůty, neoprávněné změny, neplatný výběr sedadel,
 uvolnění blokování, outbox rollback, retry a lease recovery. Tyto testy samy

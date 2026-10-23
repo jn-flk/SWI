@@ -346,10 +346,10 @@ Výsledek po doplnění testů odvozených z DD (6 nových testů: 3 v
 `notification`, 3 v `reservation`; celkem 23 + 23):
 
 ```text
-Found 47 test(s).
+Found 48 test(s).
 ..............................................
 ----------------------------------------------------------------------
-Ran 47 tests in 1.542s
+Ran 48 tests in 0.749s
 
 OK
 ```
