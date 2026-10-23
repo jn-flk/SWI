@@ -28,14 +28,16 @@ def _claim():
             next_attempt_at__lte=now,
         ).filter(Q(claimed_until__isnull=True) | Q(claimed_until__lte=now))
         # A crash during the final attempt must not leave an immortal PENDING row.
-        available.filter(attempts__gte=settings.NOTIFICATION_MAX_ATTEMPTS).update(
+        swept_failed = available.filter(
+            attempts__gte=settings.NOTIFICATION_MAX_ATTEMPTS
+        ).update(
             status=NotificationRequest.Status.FAILED,
             claim_token=None, claimed_until=None,
             last_error="Delivery attempt limit reached; last worker may have stopped before acknowledgement.",
         )
         item = available.select_for_update().order_by("next_attempt_at", "created_at", "pk").first()
         if item is None:
-            return None
+            return None, swept_failed
         token = uuid.uuid4()
         # Conditional update also prevents two claimants from owning the same row.
         updated = available.filter(pk=item.pk, attempts=item.attempts).update(
@@ -44,10 +46,10 @@ def _claim():
             claimed_until=now + timedelta(seconds=settings.NOTIFICATION_LEASE_SECONDS),
         )
         if not updated:
-            return None
+            return None, swept_failed
         item.attempts += 1
         item.claim_token = token
-        return item
+        return item, swept_failed
 
 
 def dispatch_notifications(*, batch_size=100, sender: NotificationSender | None = None):
@@ -67,7 +69,8 @@ def dispatch_notifications(*, batch_size=100, sender: NotificationSender | None 
         sender = import_string(settings.NOTIFICATION_SENDER)()
     counts = dict(attempted=0, sent=0, retried=0, failed=0)
     for _ in range(batch_size):
-        item = _claim()
+        item, swept_failed = _claim()
+        counts["failed"] += swept_failed
         if item is None:
             break
         counts["attempted"] += 1

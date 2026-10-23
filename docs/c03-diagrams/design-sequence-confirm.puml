@@ -21,8 +21,9 @@ alt přímé potvrzení
 else vyžaduje schválení
   AW --> RM : vyžaduje schválení
   RM -> DB : nastavit PENDING_APPROVAL\nnastavit lhůtu schválení
-  RM -> NI : approval_requested po commitu
-  NI -> NS : odeslat požadavek na notifikaci
+  RM -> NI : zapsat approval_requested\nve stejné transakci
+  RM -> DB : commit rezervace + outbox
+  NI -> NS : později odeslat mimo transakci
 end
 DB --> RM : potvrzená změna rezervace
 RM --> Visitor : aktuální stav rezervace

@@ -12,10 +12,10 @@ state CANCELLED
 
 [*] --> DRAFT : create (OP-01)\n[sedadla volná a aktivní]\n/ zablokovat sedadla
 
-DRAFT --> CONFIRMED : confirm (OP-03)\n[počet sedadel ≤ 10]
-DRAFT --> PENDING_APPROVAL : confirm (OP-03)\n[počet sedadel > 10\nnebo celý sál]
+DRAFT --> CONFIRMED : confirm (OP-03)\n[počet sedadel ≤ 10\n a není celý sál]
+DRAFT --> PENDING_APPROVAL : confirm (OP-03)\n[počet sedadel > 10\n nebo celý sál]
 DRAFT --> CANCELLED : cancel (OP-04)\n[now < start (BR-03)]\n/ uvolnit sedadla
-DRAFT --> EXPIRED : neaktivita uživatele ≥ 5 min\n/ uvolnit sedadla
+DRAFT --> EXPIRED : hold_until vypršel\n/ uvolnit sedadla
 
 PENDING_APPROVAL --> CONFIRMED : approve (OP-05)\n[schvalovatel oprávněn]
 PENDING_APPROVAL --> REJECTED : reject (OP-05)\n[schvalovatel oprávněn]\n/ uvolnit sedadla

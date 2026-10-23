@@ -157,6 +157,14 @@ class NotificationDispatchTests(TransactionTestCase):
         self.dispatch()
         self.sender.send.assert_called_once()
 
+    def test_failure_message_is_truncated_to_two_thousand_characters(self):
+        item = self.request()
+        self.sender.send.side_effect = RuntimeError("x" * 2500)
+        with self.assertLogs("notification.dispatcher", level="WARNING"):
+            self.dispatch()
+        item.refresh_from_db()
+        self.assertEqual(len(item.last_error), 2000)
+
     def test_expired_lease_is_recovered_with_same_message_id(self):
         old_token = uuid.uuid4()
         item = self.request(attempts=1, claim_token=old_token, claimed_until=self.now)
@@ -173,12 +181,13 @@ class NotificationDispatchTests(TransactionTestCase):
 
     def test_crash_on_last_attempt_becomes_failed_without_another_send(self):
         item = self.request(attempts=5, claim_token=uuid.uuid4(), claimed_until=self.now)
-        self.dispatch()
+        counts = self.dispatch()
         item.refresh_from_db()
         self.assertEqual(item.status, NotificationRequest.Status.FAILED)
         self.assertIn("last worker", item.last_error)
         self.assertIsNone(item.claim_token)
         self.sender.send.assert_not_called()
+        self.assertEqual(counts["failed"], 1)
 
     def test_late_worker_cannot_overwrite_new_claim_on_success_or_failure(self):
         for error in (None, TimeoutError("late timeout")):

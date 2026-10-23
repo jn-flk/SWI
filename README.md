@@ -72,9 +72,25 @@ python src/rezervace_divadlo/manage.py expire_reservations
 
 Pro průběžnou expiraci lze příkaz spustit s `--watch --interval 1`, případně zajistit pravidelné spouštění plánovačem. Oznámení vlastní Django aplikace `notification`: rezervační služby zapisují požadavky do outboxu atomicky se změnou rezervace. Samostatný dispatcher doručuje oznámení s retry a backoffem; výchozí adaptér zapisuje do logu.
 
+SQLite concurrency measurement:
+
+```bash
+python src/rezervace_divadlo/manage.py migrate
+python src/rezervace_divadlo/manage.py measure_reservation_concurrency --workers 20 --rounds 5
+```
+
+The measurement uses an isolated temporary dataset and cleans it up after the
+run. It reports whether the single-seat winner invariant holds, database
+`busy` outcomes, latency and throughput.
+
 ### Ověření a dopad na architekturu
 
-`reservation/tests.py` obsahuje 19 jednoduchých testů služeb bez API. Pokrývají například hranici 10/11 sedadel, rezervaci celého malého sálu, předstih 24 hodin, hranici 15 minut, expiraci přesně při uplynutí lhůty, neoprávněné změny, neplatný výběr sedadel, uvolnění blokování a opakované zrušení. Tyto testy samy neprokazují chování při skutečném souběhu více databázových spojení.
+`reservation/tests.py` obsahuje 23 testů služeb bez API a `notification/tests.py`
+obsahuje 24 testů outboxu a dispatcheru (47 testů celkem). Pokrývají například hranici 10/11
+sedadel, rezervaci celého malého sálu, předstih 24 hodin, hranici 15 minut,
+expiraci přesně při uplynutí lhůty, neoprávněné změny, neplatný výběr sedadel,
+uvolnění blokování, outbox rollback, retry a lease recovery. Tyto testy samy
+neprokazují chování při skutečném souběhu více databázových spojení.
 
 Zůstávají Django ORM, SQLite pro vývoj, intervaly `[start,end)` a pravidlo jediné aktivní rezervace sedadla pro dané představení. Datový model přidává vazbu `ReservationSeat`, stav, vlastníka a časové limity. Transakce a databázová omezení chrání aktivní alokace; změny schématu obsahuje migrace `0002`.
 

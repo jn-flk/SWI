@@ -173,12 +173,12 @@ Scenario walkthrough: Visitor zavolá Confirm Reservation. Reservation
 Management načte a zamkne rezervaci, ověří vlastníka, platnost držení a
 aktivní sedadla. Approval Workflow vyhodnotí limit 10 sedadel nebo celý sál.
 Při přímé větvi Reservation Management uloží `CONFIRMED`; při schvalovací
-větvi uloží `PENDING_APPROVAL` a deadline. Notifikace vzniká až po commitu.
+větvi uloží `PENDING_APPROVAL` a deadline. Notifikace se zapisuje do transakčního outboxu ve stejné transakci jako změna rezervace; doručení probíhá později přes dispatcher.
 Při expiraci se stav nastaví na `EXPIRED` a aktivní alokace se uvolní.
 
 ADR: Přijato — logické prvky se mapují do jednoho Django procesu; aktivní
 alokace chrání podmíněný unikátní databázový constraint; Notification Service
-je za adapter boundary a je volán přes post-commit notifikaci.
+je za adapter boundary a je volán přes transakční outbox a samostatný dispatcher.
 
 Views:
 
@@ -211,15 +211,15 @@ AS-IS → TO-BE delta:
 | Oblast | AS-IS | TO-BE | Akce |
 |---|---|---|---|
 | změna `Reservation.state` | controller + service | pouze Reservation Management | KEEP |
-| `CHANGE` notifikace | lokální adapter v `notifications.py` | Notification Integration za boundary | KEEP |
+| `CHANGE` notifikace | transakční outbox v aplikaci `notification` | Notification Integration + dispatcher za boundary | KEEP |
 | persistence dependency | Django ORM + SQLite | stejná persistence | KEEP |
-| dependency rule | implicitní import boundary | ověřená izolace logging/adapteru | VERIFY |
+| dependency rule | explicitní outbox/dispatcher boundary | rezervační služby zapisují outbox; sendery a logging jsou v `notification` | VERIFY |
 | runtime | jedna Django aplikace | jeden Reservation Application process | KEEP |
 
 Implementation changes: Žádná řádka `CHANGE` nebyla nalezena. Přidána byla
 jen opakovatelná architektonická kontrola v
 [reservation/tests.py](../src/rezervace_divadlo/reservation/tests.py), která
-ověřuje, že import `logging` zůstává izolován v `notifications.py`.
+ověřuje, že rezervační aplikace neimportuje sendery ani logging; integrace je v aplikaci `notification`.
 
 Behaviour verification:
 
@@ -228,19 +228,19 @@ Behaviour verification:
 | success path — přímé potvrzení | PASS | `test_ten_seats_confirm_directly_but_eleven_require_approval` |
 | alternative/failure — expirace držení | PASS | `test_confirm_at_hold_deadline_expires_reservation` |
 | alternative/failure — approve/reject | PASS | `test_only_approver_can_decide_and_rejection_releases_seats` |
-| relevant boundary/concurrency rule | PARTIAL | 20 Django testů + `manage.py check`; atomická ochrana a constraint jsou ověřeny sekvenční sadou, skutečný paralelní test zatím chybí |
+| relevant boundary/concurrency rule | PARTIAL | 23 reservation + 24 notification testů a `manage.py check`; atomická ochrana a constraint jsou ověřeny sekvenční sadou, skutečný paralelní test zatím chybí |
 
 Architecture conformance rule + result:
 
 ```text
 Architektonické pravidlo:
-  Vedlejší efekt Notification Service (logging/adaptér) smí být importován
-  pouze v Notification Integration, tedy v notifications.py.
+  Rezervační aplikace smí zapisovat pouze outboxový požadavek; sender a
+  logging patří do aplikace notification.
 Kontrola:
-  ReservationTests.test_notification_side_effect_is_isolated_to_integration_adapter
-  staticky projde AST všech modulů reservation/*.py.
+  Rezervační testy ověřují transakční zápis outboxu a absence inline doručení.
 Výsledek:
-  PASS — jediný modul importující logging je notifications.py.
+  PASS — rezervační služby nedoručují notifikace inline a používají
+  notification.services.record_notification.
 ```
 
 Remaining uncertainty / risk: Sada neprokazuje výkon při 20 paralelních
@@ -268,7 +268,7 @@ pozdější dokumentační opravy jsou součástí commitu `699b501`.
 | Větev backoffu | Prodleva se zdvojnásobuje a nepřekročí nastavené maximum. | jednotkový/komponentový | `test_backoff_doubles_and_is_capped` |
 | Terminální selhání | Maximální počet pokusů nastaví `FAILED` a zpráva se znovu neodešle. | komponentový | `test_final_failure_stops_retries` |
 | Obnova lease | Expirovaný lease se převezme novým tokenem při zachování ID zprávy. | komponentový | `test_expired_lease_is_recovered_with_same_message_id` |
-| Přechod expirovaný lease po posledním pokusu → `FAILED` | Pád workeru při posledním pokusu nenechá věčně `PENDING` záznam a nevyvolá další odeslání. | komponentový | `test_crash_on_last_attempt_becomes_failed_without_another_send` |
+| Přechod expirovaný lease po posledním pokusu → `FAILED` | Pád workeru při posledním pokusu nenechá věčně `PENDING` záznam, nevyvolá další odeslání a započte sweep do `failed`. | komponentový | `test_crash_on_last_attempt_becomes_failed_without_another_send` |
 | Invariant převzetí | Budoucí, terminální a platně převzaté záznamy se nedoručují. | komponentový | `test_future_terminal_and_unexpired_claims_are_not_delivered` |
 | Fencing invariant | Pozdní worker nemůže přepsat novější claim. | komponentový | `test_late_worker_cannot_overwrite_new_claim_on_success_or_failure` |
 | Kontrakt HTTP adaptéru | HTTP sender odešle JSON, timeout a idempotency klíč; chyby se propagují. | jednotkový | `test_http_posts_snapshot_with_idempotency_key_and_timeout`, `test_http_transport_and_server_errors_propagate_for_retry` |
@@ -346,10 +346,10 @@ Výsledek po doplnění testů odvozených z DD (6 nových testů: 3 v
 `notification`, 3 v `reservation`; celkem 23 + 23):
 
 ```text
-Found 46 test(s).
+Found 47 test(s).
 ..............................................
 ----------------------------------------------------------------------
-Ran 46 tests in 0.393s
+Ran 47 tests in 1.542s
 
 OK
 ```
