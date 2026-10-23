@@ -22,7 +22,7 @@ Services --> Settings : čte limity
 Services --> Auth : ověří oprávnění
 Models --> DB : čte / zapisuje přes ORM
 Services --> DB : commit / rollback přes Django
-Services --> Notifications : notify po commitu:\nschvalování / expirace
-Notifications --> Log : logger.info
+Services --> Notifications : record_notification:\ntransakční outbox
+Notifications --> Log : dispatcher + sender\nmimo transakci
 
 @enduml

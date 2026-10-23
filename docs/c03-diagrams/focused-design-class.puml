@@ -4,37 +4,39 @@ hide circle
 skinparam classAttributeIconSize 0
 
 class Reservation {
-  stav
-  lhůta_držení
-  lhůta_schválení
-  potvrdit()
-  zrušit()
+  - status : Status
+  - holdUntil : DateTime
+  - approvalDeadline : DateTime
+  + confirm() : Reservation
+  + cancel() : Reservation
 }
 class ReservationSeat {
-  aktivní
+  - active : bool
 }
 class Performance {
-  začátek
+  - startAt : DateTime
 }
 class Seat {
-  aktivní
+  - isActive : bool
 }
 class ApprovalPolicy <<rule>> {
-  vyžaduje_schválení()
-  zkontrolovat_předstih()
+  + requiresApproval() : bool
+  + checkLeadTime() : void
 }
 class ReservationManagement <<service>> {
-  potvrdit_rezervaci()
-  zrušit_rezervaci()
+  + confirmReservation() : Reservation
+  + cancelReservation() : Reservation
 }
 interface AllocationRepository {
- aktivní_alokace(představení, sedadla)
- uvolnit(rezervaci)
+ + activeAllocations(performance, seats) : ReservationSeat
+ + release(reservation) : void
 }
 interface NotificationPort {
- notifikovat(id_rezervace, událost)
+ + record(event) : NotificationRequest
 }
-class NotificationIntegration <<adaptér>>
+class NotificationIntegration <<adapter>> {
+  + send(message) : void
+}
 
 Reservation "1" *-- "1..*" ReservationSeat : obsahuje
 ReservationSeat "*" --> "1" Seat : odkazuje na
@@ -42,7 +44,7 @@ Reservation "*" --> "1" Performance : pro
 ReservationManagement --> Reservation : vlastní přechod životního cyklu
 ReservationManagement --> AllocationRepository : hranice alokací
 ReservationManagement --> ApprovalPolicy : vyhodnocuje pravidlo
-ReservationManagement --> NotificationPort : událost po commitu
+ReservationManagement --> NotificationPort : transakční zápis outboxu
 NotificationIntegration ..|> NotificationPort
 ApprovalPolicy --> Performance : kontrola předstihu
 AllocationRepository --> ReservationSeat : aktivní alokace

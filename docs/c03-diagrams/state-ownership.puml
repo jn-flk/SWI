@@ -16,6 +16,6 @@ PENDING_APPROVAL --> REJECTED : zamítnout\nvlastník: Schvalovací workflow\nž
 DRAFT --> CANCELLED : zrušit\nvlastník: Správa rezervací\nžadatel: Návštěvník
 PENDING_APPROVAL --> CANCELLED : zrušit\nvlastník: Správa rezervací\nžadatel: Návštěvník
 CONFIRMED --> CANCELLED : zrušit\nvlastník: Správa rezervací\nžadatel: Návštěvník
-DRAFT --> EXPIRED : lhůta držení\nvlastník: Plánovač expirace\nžadatel: Plánovač
-PENDING_APPROVAL --> EXPIRED : lhůta schválení\nvlastník: Plánovač expirace\nžadatel: Plánovač
+DRAFT --> EXPIRED : lhůta držení\nvlastník: Správa rezervací\nžadatel: Plánovač expirace
+PENDING_APPROVAL --> EXPIRED : lhůta schválení\nvlastník: Správa rezervací\nžadatel: Plánovač expirace
 @enduml
