@@ -419,8 +419,7 @@ Assessed baseline:
 - Historické milníky: `C01` (`1137bbf`), `C02` (`6ebfcc1`),
   `C03` (`1799c7b`). Tag `C05` zahrnuje implementaci outboxu, DD
   a doplněnou verifikaci; identifikuje také C05 evidenci s TODO výše.
-- Podklad: [assessed_project.md](../../assessed_project.md), hodnocení
-  SIGMA → HAH z 19. 10. 2026. F1–F3 byly znovu porovnány s aktuálními
+- Podklad: Hodnocení SIGMA → HAH z 19. 10. 2026. F1–F3 byly znovu porovnány s aktuálními
   soubory; rozhodnutí níže se vztahují výhradně k tagu `C05`.
 - Ve zdrojích je 23 rezervačních a 23 notifikačních testů. C05 evidence
   výše zaznamenává 46 úspěšných testů za 0,393 s na Pythonu 3.11.9
