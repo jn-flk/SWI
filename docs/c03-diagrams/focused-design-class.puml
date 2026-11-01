@@ -25,6 +25,7 @@ class ApprovalPolicy <<rule>> {
 }
 class ReservationManagement <<service>> {
   + confirmReservation() : Reservation
+  + touchReservation() : Reservation
   + cancelReservation() : Reservation
 }
 interface AllocationRepository {

@@ -11,6 +11,7 @@ state EXPIRED
 [*] --> DRAFT : vytvořit\nvlastník: Správa rezervací\nžadatel: Návštěvník
 DRAFT --> CONFIRMED : potvrdit, přímo\nvlastník: Správa rezervací\nžadatel: Návštěvník
 DRAFT --> PENDING_APPROVAL : potvrdit, vyžaduje schválení\nvlastník: Správa rezervací\nžadatel: Návštěvník
+DRAFT --> DRAFT : obnovit držení\nvlastník: Správa rezervací\nžadatel: Návštěvník
 PENDING_APPROVAL --> CONFIRMED : schválit\nvlastník: Schvalovací workflow\nžadatel: Schvalovatel
 PENDING_APPROVAL --> REJECTED : zamítnout\nvlastník: Schvalovací workflow\nžadatel: Schvalovatel
 DRAFT --> CANCELLED : zrušit\nvlastník: Správa rezervací\nžadatel: Návštěvník

@@ -173,12 +173,12 @@ Scenario walkthrough: Visitor zavolá Confirm Reservation. Reservation
 Management načte a zamkne rezervaci, ověří vlastníka, platnost držení a
 aktivní sedadla. Approval Workflow vyhodnotí limit 10 sedadel nebo celý sál.
 Při přímé větvi Reservation Management uloží `CONFIRMED`; při schvalovací
-větvi uloží `PENDING_APPROVAL` a deadline. Notifikace se zapisuje do transakčního outboxu ve stejné transakci jako změna rezervace; doručení probíhá později přes dispatcher.
+větvi uloží `PENDING_APPROVAL` a deadline. Notifikace vzniká až po commitu.
 Při expiraci se stav nastaví na `EXPIRED` a aktivní alokace se uvolní.
 
 ADR: Přijato — logické prvky se mapují do jednoho Django procesu; aktivní
 alokace chrání podmíněný unikátní databázový constraint; Notification Service
-je za adapter boundary a je volán přes transakční outbox a samostatný dispatcher.
+je za adapter boundary a je volán přes post-commit notifikaci.
 
 Views:
 
@@ -211,15 +211,15 @@ AS-IS → TO-BE delta:
 | Oblast | AS-IS | TO-BE | Akce |
 |---|---|---|---|
 | změna `Reservation.state` | controller + service | pouze Reservation Management | KEEP |
-| `CHANGE` notifikace | transakční outbox v aplikaci `notification` | Notification Integration + dispatcher za boundary | KEEP |
+| `CHANGE` notifikace | lokální adapter v `notifications.py` | Notification Integration za boundary | KEEP |
 | persistence dependency | Django ORM + SQLite | stejná persistence | KEEP |
-| dependency rule | explicitní outbox/dispatcher boundary | rezervační služby zapisují outbox; sendery a logging jsou v `notification` | VERIFY |
+| dependency rule | implicitní import boundary | ověřená izolace logging/adapteru | VERIFY |
 | runtime | jedna Django aplikace | jeden Reservation Application process | KEEP |
 
 Implementation changes: Žádná řádka `CHANGE` nebyla nalezena. Přidána byla
 jen opakovatelná architektonická kontrola v
 [reservation/tests.py](../src/rezervace_divadlo/reservation/tests.py), která
-ověřuje, že rezervační aplikace neimportuje sendery ani logging; integrace je v aplikaci `notification`.
+ověřuje, že import `logging` zůstává izolován v `notifications.py`.
 
 Behaviour verification:
 
@@ -228,19 +228,19 @@ Behaviour verification:
 | success path — přímé potvrzení | PASS | `test_ten_seats_confirm_directly_but_eleven_require_approval` |
 | alternative/failure — expirace držení | PASS | `test_confirm_at_hold_deadline_expires_reservation` |
 | alternative/failure — approve/reject | PASS | `test_only_approver_can_decide_and_rejection_releases_seats` |
-| relevant boundary/concurrency rule | PARTIAL | 23 reservation + 24 notification testů a `manage.py check`; atomická ochrana a constraint jsou ověřeny sekvenční sadou, skutečný paralelní test zatím chybí |
+| relevant boundary/concurrency rule | PARTIAL | 20 Django testů + `manage.py check`; atomická ochrana a constraint jsou ověřeny sekvenční sadou, skutečný paralelní test zatím chybí |
 
 Architecture conformance rule + result:
 
 ```text
 Architektonické pravidlo:
-  Rezervační aplikace smí zapisovat pouze outboxový požadavek; sender a
-  logging patří do aplikace notification.
+  Vedlejší efekt Notification Service (logging/adaptér) smí být importován
+  pouze v Notification Integration, tedy v notifications.py.
 Kontrola:
-  Rezervační testy ověřují transakční zápis outboxu a absence inline doručení.
+  ReservationTests.test_notification_side_effect_is_isolated_to_integration_adapter
+  staticky projde AST všech modulů reservation/*.py.
 Výsledek:
-  PASS — rezervační služby nedoručují notifikace inline a používají
-  notification.services.record_notification.
+  PASS — jediný modul importující logging je notifications.py.
 ```
 
 Remaining uncertainty / risk: Sada neprokazuje výkon při 20 paralelních
@@ -268,7 +268,7 @@ pozdější dokumentační opravy jsou součástí commitu `699b501`.
 | Větev backoffu | Prodleva se zdvojnásobuje a nepřekročí nastavené maximum. | jednotkový/komponentový | `test_backoff_doubles_and_is_capped` |
 | Terminální selhání | Maximální počet pokusů nastaví `FAILED` a zpráva se znovu neodešle. | komponentový | `test_final_failure_stops_retries` |
 | Obnova lease | Expirovaný lease se převezme novým tokenem při zachování ID zprávy. | komponentový | `test_expired_lease_is_recovered_with_same_message_id` |
-| Přechod expirovaný lease po posledním pokusu → `FAILED` | Pád workeru při posledním pokusu nenechá věčně `PENDING` záznam, nevyvolá další odeslání a započte sweep do `failed`. | komponentový | `test_crash_on_last_attempt_becomes_failed_without_another_send` |
+| Přechod expirovaný lease po posledním pokusu → `FAILED` | Pád workeru při posledním pokusu nenechá věčně `PENDING` záznam a nevyvolá další odeslání. | komponentový | `test_crash_on_last_attempt_becomes_failed_without_another_send` |
 | Invariant převzetí | Budoucí, terminální a platně převzaté záznamy se nedoručují. | komponentový | `test_future_terminal_and_unexpired_claims_are_not_delivered` |
 | Fencing invariant | Pozdní worker nemůže přepsat novější claim. | komponentový | `test_late_worker_cannot_overwrite_new_claim_on_success_or_failure` |
 | Kontrakt HTTP adaptéru | HTTP sender odešle JSON, timeout a idempotency klíč; chyby se propagují. | jednotkový | `test_http_posts_snapshot_with_idempotency_key_and_timeout`, `test_http_transport_and_server_errors_propagate_for_retry` |
@@ -346,10 +346,10 @@ Výsledek po doplnění testů odvozených z DD (6 nových testů: 3 v
 `notification`, 3 v `reservation`; celkem 23 + 23):
 
 ```text
-Found 48 test(s).
+Found 46 test(s).
 ..............................................
 ----------------------------------------------------------------------
-Ran 48 tests in 0.749s
+Ran 46 tests in 0.393s
 
 OK
 ```
@@ -493,3 +493,126 @@ Remaining evidence gaps:
 - Sjednotit ownership expirace v G3 s rezervačními službami a zachytit
   lazy expiry. Po opravách doložit návaznost původního tagu `C05`
   na nový reporting commit/tag a důkazy uzavření F1–F3.
+
+## Následné vypořádání nálezů po assessmentu C05
+
+Assessment výše zůstává historickým záznamem stavu tagu `C05`. Dispozice
+`ACCEPTED — change required` proto popisují tehdejší rozhodnutí a nejsou
+zpětně přepisovány jako důkaz, že opravy v tagu `C05` již existovaly.
+
+V navazujících změnách větve byly provedeny změny požadované assessmentem
+(`49a276a` a oprava obrázku v `55fe41c`; `6762a24` pouze sjednocuje české
+znění dokumentace):
+
+| Oblast | Co bylo provedeno | Konkrétní evidence |
+|---|---|---|
+| F1 — specifikace a pravidla | C02 operations, pravidla a diagramové zdroje byly sjednoceny s cutoffem 15 minut, předstihem 24 hodin, prioritou schválení celého sálu a obnovou držení. | [`operations.md`](operations.md) OP-01, OP-01a a OP-03; [`intent_and_change.md`](intent_and_change.md) BR-07/BR-08; [`activity-op03-confirm.puml`](c02-diagrams/activity-op03-confirm.puml), [`activity-op01-create.puml`](c02-diagrams/activity-op01-create.puml), [`state.puml`](c02-diagrams/state.puml), [`use-case.puml`](c02-diagrams/use-case.puml) |
+| F2 — architektura a evidence | Pohledy C03 a evidence používají transakční outbox a samostatný dispatcher; starý `on_commit` popis je historická baseline. | [`architecture-and-decisions.md`](architecture-and-decisions.md); [`design-sequence-confirm.puml`](c03-diagrams/design-sequence-confirm.puml); [`static-architecture.puml`](c03-diagrams/static-architecture.puml); [`dispatcher.py`](../src/rezervace_divadlo/notification/dispatcher.py) |
+| F3 — DD a dispatcher | DD popisuje terminální přechod expirovaného lease do `FAILED`; dispatcher započítává úklidová selhání do `counts["failed"]`. | [`architecture-and-decisions.md`](architecture-and-decisions.md) — stavový model a pseudokód; [`dispatcher.py`](../src/rezervace_divadlo/notification/dispatcher.py); [`test_crash_on_last_attempt_becomes_failed_without_another_send`](../src/rezervace_divadlo/notification/tests.py) |
+| C04/Q evidence | Byl doplněn reprodukovatelný příkaz a testovací podklad pro lokální měření dvaceti souběžných pokusů. | [`measure_reservation_concurrency.py`](../src/rezervace_divadlo/reservation/management/commands/measure_reservation_concurrency.py); [`tests_concurrency.py`](../src/rezervace_divadlo/reservation/tests_concurrency.py) |
+| Confirm diagram | Zdroj a vyrenderovaný obrázek Confirm sekvence byly po architektonické opravě sjednoceny. | [`design-sequence-confirm.puml`](c03-diagrams/design-sequence-confirm.puml) a [`design-sequence-confirm.png`](c03-diagrams/design-sequence-confirm.png) |
+
+Stav vypořádání:
+
+| Finding | Stav v reporting baseline | Zbývající akce |
+|---|---|---|
+| F1 | CLOSED pro aktuální reporting baseline. | `touch_reservation` je zachycen v use-case, stavovém, activity a ownership pohledu; implementace je v [`services.py`](../src/rezervace_divadlo/reservation/services.py) a test obnovy v [`tests.py`](../src/rezervace_divadlo/reservation/tests.py). |
+| F2 | CLOSED pro aktuální architekturu a evidenci. | Udržovat [`architecture-and-decisions.md`](architecture-and-decisions.md), diagramy a [`dispatcher.py`](../src/rezervace_divadlo/notification/dispatcher.py) synchronizované při dalších změnách. |
+| F3 | CLOSED pro aktuální implementaci. | Zachovat [`test_crash_on_last_attempt_becomes_failed_without_another_send`](../src/rezervace_divadlo/notification/tests.py) a při změně dispatcheru znovu ověřit kontrakt počitadla. |
+
+
+## A — Technické argumenty a evidence aktuální baseline
+
+Část A obhajuje aktuální reporting baseline. Nemíchá tedy výsledek assessmentu
+tagu `C05` s důkazem změn provedených později.
+
+| Technický argument | Aktuální tvrzení | Evidence | Omezení |
+|---|---|---|---|
+| Životní cyklus rezervace a exkluzivita sedadel | Create atomicky zablokuje vybraná sedadla; Confirm provede přímé potvrzení nebo odešle rezervaci ke schválení; Cancel, Reject a Expire uvolní aktivní alokace a zachovají historii. | `reservation/services.py`, `reservation/models.py`, `docs/operations.md`, `docs/intent_and_change.md`, testy `reservation`. | Ověření probíhá přes aplikační služby, nikoli přes HTTP API; API není součástí aktuálního projektu. |
+| Schvalovací a časová pravidla | Hranice 10 sedadel, priorita celého sálu, cutoff 15 minut, předstih 24 hodin a pětiminutové obnovitelné držení jsou implementované a ověřené na hranicích. | OP-01, OP-01a a OP-03 v `docs/operations.md`, pravidla v `docs/intent_and_change.md`, testy časových hranic a obnovy držení. | Důkaz je z lokální testovací databáze; není to důkaz produkčního nasazení. |
+| Notifikační integrace | Rezervační přechod zapíše neměnný outbox snapshot ve stejné transakci; samostatný dispatcher provádí claim, doručení, retry, backoff a fencing. | `docs/architecture-and-decisions.md`, `docs/c03-diagrams/`, `notification/services.py`, `notification/dispatcher.py`, testy `notification`. | Externí doručení je zastoupeno adaptérem nebo test double; skutečný externí receiver není součástí baseline. |
+| Lokální souběh rezervací | Měření 20 workerů v 5 kolech vytvořilo 5 vítězných alokací, zaznamenalo 95 konfliktů, 0 `busy`, medián latence 201,14 ms a propustnost 19,6 pokusu/s. | `measure_reservation_concurrency --workers 20 --rounds 5` po migraci lokální SQLite databáze. | Výsledek platí pouze pro deklarovaný lokální workload a SQLite; není kapacitní garancí pro produkční databázi. |
+| Aktuální verifikace | Aktuální větev má 48 testů a `manage.py check` nehlásí systémové chyby. | `python src/rezervace_divadlo/manage.py test notification reservation`; aktuální ověřovací běh. | Nejsou plně ověřené migrace existujících dat, produkční recovery ani externí doručení. |
+
+## B — Risk register aktuální baseline
+
+Následující rizika jsou samostatná od historických findings F1–F3. Likelihood
+a impact používají stupnici 1–3; priorita je `L × I`. Skutečné reziduální
+riziko je `NOT VERIFIED`, dokud není doložena účinnost opatření.
+
+### R-01 — Přenositelnost SQLite concurrency
+
+- **Kategorie:** Technická / výkonová
+- **Příčina → nejistá událost → důsledek:** SQLite serializuje zápisy; produkční
+  workload nebo databázový engine se bude chovat jinak než lokální měření;
+  vzroste latence, lock contention nebo počet odmítnutých požadavků.
+- **Počáteční L / I / priorita:** 2 / 3 / HIGH.
+- **Response:** MITIGATE — zachovat reprodukovatelné lokální měření a před
+  volbou produkční databáze definovat workload a prahové hodnoty.
+- **Opatření / vlastník / termín:** HAH; zapsat workload, limity a další
+  měření před příštím CP1 review.
+- **Důkaz účinnosti:** 20 workerů × 5 kol: 0 `busy`, medián 201,14 ms,
+  propustnost 19,6 pokusu/s.
+- **Očekávané reziduum:** 1 / 3 / MEDIUM.
+- **Skutečné reziduum:** NOT VERIFIED pro produkční databázi.
+- **Trigger / contingency / další review:** `busy` nebo latence nad limitem;
+  vyhodnotit PostgreSQL či jinou strategii zamykání; review při CP1.
+- **Rozhodnutí:** Přijmout omezení pouze pro lokální baseline; vlastník HAH.
+
+### R-02 — Duplicity při at-least-once notifikacích
+
+- **Kategorie:** Integrace / spolehlivost
+- **Příčina → nejistá událost → důsledek:** Worker selže po přijetí zprávy
+  externím receiverem, ale před uložením `SENT`; retry doručí duplicitu.
+- **Počáteční L / I / priorita:** 2 / 3 / HIGH.
+- **Response:** MITIGATE — zachovat stabilní ID zprávy a `Idempotency-Key`;
+  vyžadovat deduplikaci na straně receiveru.
+- **Opatření / vlastník / termín:** vlastník notifikační integrace; zdokumentovat
+  a ověřit idempotenci receiveru před externí integrací.
+- **Důkaz účinnosti:** test HTTP adaptéru ověřuje stabilní idempotency key;
+  deduplikace skutečného receiveru ověřena není.
+- **Očekávané reziduum:** 1 / 2 / MEDIUM.
+- **Skutečné reziduum:** NOT VERIFIED.
+- **Trigger / contingency / další review:** duplicita nebo receiver bez
+  idempotence; pozastavit doručování či provést reconciliaci podle ID.
+- **Rozhodnutí:** Přijmout dočasně do uzavření kontraktu receiveru; vlastník HAH.
+
+### R-03 — Dostupnost dispatcheru a expiry workeru
+
+- **Kategorie:** Provozní
+- **Příčina → nejistá událost → důsledek:** Dispatcher nebo expiry command
+  neběží, zpozdí se nebo ztratí lease; doručení a persistované `EXPIRED`
+  přechody se zpozdí.
+- **Počáteční L / I / priorita:** 2 / 3 / HIGH.
+- **Response:** MITIGATE — používat management commands s `--watch`, sledovat
+  výstup a zachovat lease recovery a retry.
+- **Opatření / vlastník / termín:** provozní vlastník; definovat supervision,
+  restart policy a alert thresholds před nasazením.
+- **Důkaz účinnosti:** testy commandů, lease recovery a retry procházejí;
+  dlouhý běh ani restart drill proveden nebyl.
+- **Očekávané reziduum:** 1 / 2 / MEDIUM.
+- **Skutečné reziduum:** NOT VERIFIED.
+- **Trigger / contingency / další review:** stale `PENDING` nebo overdue hold;
+  restart workeru a one-shot recovery; review při operational readiness.
+- **Rozhodnutí:** Přijmout pouze pro development baseline; produkční provoz
+  vyžaduje doplnění supervision evidence.
+
+### R-04 — Migrace existujících dat
+
+- **Kategorie:** Data / migrace
+- **Příčina → nejistá událost → důsledek:** Migrace `0002` převádí staré
+  rezervace do více-sedadlového modelu, ale nebyla provedena fixture-based
+  zkouška reprezentativní staré databáze; může vzniknout ztráta dat nebo
+  nesprávná aktivní alokace.
+- **Počáteční L / I / priorita:** 2 / 3 / HIGH.
+- **Response:** MITIGATE — vytvořit legacy fixture, provést forward migration,
+  ověřit rezervace i alokace a zachovat backup.
+- **Opatření / vlastník / termín:** vlastník persistence; provést rehearsal
+  před použitím existující databáze.
+- **Důkaz účinnosti:** existují migrační soubory a požadavek na backup;
+  fixture-based rehearsal doložen není.
+- **Očekávané reziduum:** 1 / 2 / MEDIUM.
+- **Skutečné reziduum:** NOT VERIFIED.
+- **Trigger / contingency / další review:** nesoulad počtů nebo kontrol migrace;
+  obnovit backup a zastavit rollout; review před data-bearing deploymentem.
+- **Rozhodnutí:** Pro produkční rollout zatím nepřijmout; vlastník HAH.

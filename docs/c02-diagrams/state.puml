@@ -14,6 +14,7 @@ state CANCELLED
 
 DRAFT --> CONFIRMED : confirm (OP-03)\n[počet sedadel ≤ 10\n a není celý sál]
 DRAFT --> PENDING_APPROVAL : confirm (OP-03)\n[počet sedadel > 10\n nebo celý sál]
+DRAFT --> DRAFT : renew hold (OP-01a)\n[vlastník oprávněn a hold_until > now]\n/ hold_until = min(now + 5 min, start)
 DRAFT --> CANCELLED : cancel (OP-04)\n[now < start (BR-03)]\n/ uvolnit sedadla
 DRAFT --> EXPIRED : hold_until vypršel\n/ uvolnit sedadla
 
