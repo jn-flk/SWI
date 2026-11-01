@@ -1,0 +1,51 @@
+@startuml
+title Diagram aktivit – Zjistit dostupnost sedadel
+
+|Návštěvník|
+start
+:Otevře mapu sálu pro představení\n(volitelně s intervalem a výběrem sedadel);
+|Systém|
+if (Představení existuje\na má kladnou délku?) then (ne)
+  :Odmítnout;
+  stop
+endif
+if (Je zadán jen začátek\nnebo jen konec intervalu?) then (ano)
+  :Odmítnout – neúplný interval;
+  stop
+endif
+:Chybějící interval nahradit\n[začátek, konec) představení;
+if (začátek < konec? (BR-01)) then (ne)
+  :Odmítnout – neplatný interval;
+  stop
+endif
+if (Jsou zadána konkrétní sedadla?) then (ano)
+  if (Výběr je neprázdný, bez duplicit,\nsedadla existují a patří do sálu?) then (ne)
+    :Odmítnout – neplatný výběr sedadel;
+    stop
+  endif
+else (ne)
+  :Vzít všechna sedadla sálu;
+endif
+if (Dotaz [začátek, konec) se překrývá\ns [začátek, konec) představení? (BR-01)) then (ne)
+  :Žádné sedadlo není blokované;
+  note right
+    Polouzavřené intervaly – dotaz končící
+    přesně začátkem představení se nepřekrývá.
+  end note
+else (ano)
+  :Najít aktivní alokace představení (BR-02):\nCONFIRMED, DRAFT s hold_until > now,\nPENDING_APPROVAL s approval_deadline > now;
+  note right
+    CANCELLED, REJECTED a EXPIRED neblokují.
+    Propadlé DRAFT / PENDING_APPROVAL se berou
+    jako volné i před během expirace (BR-05).
+  end note
+endif
+:Pro každé sedadlo: AVAILABLE, pokud je\naktivní a není blokované; jinak UNAVAILABLE;
+note right
+  Pouze čtení – žádný stav
+  rezervace se nemění.
+end note
+|Návštěvník|
+:Vidí mapu sálu;\nvolná sedadla lze vybrat;
+stop
+@enduml

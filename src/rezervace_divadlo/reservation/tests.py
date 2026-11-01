@@ -169,6 +169,18 @@ class ReservationTests(ReservationFixture, TestCase):
             confirm_reservation(self.user, reservation.pk, now=self.now)
         self.assertEqual(error.exception.code, "invalid_state")
 
+    def test_confirm_with_seat_deactivated_after_create_is_rejected(self):
+        reservation = self.create(2)
+        self.seats[1].is_active = False
+        self.seats[1].save()
+        with self.assertRaises(ReservationError) as error:
+            confirm_reservation(self.user, reservation.pk, now=self.now)
+        self.assertEqual(error.exception.code, "inactive_seat")
+        reservation.refresh_from_db()
+        self.assertEqual(reservation.status, Reservation.Status.DRAFT)
+        self.assertEqual(reservation.allocations.filter(active=True).count(), 2)
+        self.assertFalse(NotificationRequest.objects.exists())
+
     def test_repeated_cancel_succeeds_even_after_start(self):
         reservation = self.create()
         cancel_reservation(self.user, reservation.pk, now=self.now)
