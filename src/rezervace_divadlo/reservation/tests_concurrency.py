@@ -6,8 +6,8 @@ from django.contrib.auth import get_user_model
 from django.test import TransactionTestCase
 from django.utils import timezone
 
-from .models import Hall, Performance, Play, Seat
-from .services import ReservationError, create_reservation
+from .models import Hall, Performance, Play, Reservation, Seat
+from .services import ReservationError, confirm_reservation, create_reservation
 
 
 class ReservationConcurrencyTests(TransactionTestCase):
@@ -55,3 +55,37 @@ class ReservationConcurrencyTests(TransactionTestCase):
             sum(outcome in {"conflict", "busy", "unavailable"} for outcome in outcomes),
             1,
         )
+
+    def test_concurrent_confirm_has_one_winner_for_one_reservation(self):
+        workers = 2
+        barrier = Barrier(workers)
+        # A second seat keeps this off the whole-hall approval path.
+        Seat.objects.create(hall_id=self.seat.hall_id, row=1, number=2)
+        reservation = create_reservation(
+            self.user, self.performance.pk, [self.seat.pk], now=self.now
+        )
+
+        def attempt():
+            from django.db import close_old_connections
+
+            close_old_connections()
+            try:
+                barrier.wait(timeout=10)
+                confirm_reservation(self.user, reservation.pk, now=self.now)
+                return "confirmed"
+            except ReservationError as error:
+                return error.code
+            finally:
+                close_old_connections()
+
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            outcomes = list(pool.map(lambda _: attempt(), range(workers)))
+
+        self.assertEqual(outcomes.count("confirmed"), 1)
+        self.assertEqual(
+            sum(outcome in {"invalid_state", "busy"} for outcome in outcomes),
+            1,
+        )
+        reservation.refresh_from_db()
+        self.assertEqual(reservation.status, Reservation.Status.CONFIRMED)
+        self.assertEqual(reservation.allocations.filter(active=True).count(), 1)
