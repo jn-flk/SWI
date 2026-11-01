@@ -18,6 +18,19 @@ note right
   sedadla jsou blokovaná už od DRAFT.
 end note
 :Zastavit časovač neaktivity;
+if (hold_until stále platí?) then (ne)
+  :Nastavit EXPIRED a uvolnit sedadla;
+  :Odmítnout jako vypršené;
+  stop
+endif
+if (Všechna sedadla aktivní?) then (ne)
+  :Odmítnout – neaktivní sedadlo;
+  stop
+endif
+if (Je představení nejméně 15 min daleko\na u schválení nejméně 24 h?) then (ne)
+  :Odmítnout – časová hranice;
+  stop
+endif
 if (Počet sedadel > 10\nnebo celý sál?) then (ano)
   :Nastavit stav PENDING_APPROVAL;
   :Spustit lhůtu pro schválení (24 h);

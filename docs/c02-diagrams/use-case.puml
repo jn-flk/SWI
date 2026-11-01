@@ -9,6 +9,7 @@ actor "Časovač\n(systém)" as T
 
 rectangle "Rezervační systém divadla" {
   usecase "OP-01\nVytvořit rezervaci\n(blokuje sedadla)" as OP1
+  usecase "OP-01a\nObnovit držení\n(DRAFT)" as OP1A
   usecase "OP-02\nZjistit dostupnost sedadla" as OP2
   usecase "OP-03\nPotvrdit rezervaci" as OP3
   usecase "OP-04\nZrušit rezervaci" as OP4
@@ -17,6 +18,7 @@ rectangle "Rezervační systém divadla" {
 }
 
 V --> OP1
+V --> OP1A
 V --> OP2
 V --> OP3
 V --> OP4

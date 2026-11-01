@@ -419,8 +419,7 @@ Assessed baseline:
 - Historické milníky: `C01` (`1137bbf`), `C02` (`6ebfcc1`),
   `C03` (`1799c7b`). Tag `C05` zahrnuje implementaci outboxu, DD
   a doplněnou verifikaci; identifikuje také C05 evidenci s TODO výše.
-- Podklad: [assessed_project.md](../../assessed_project.md), hodnocení
-  SIGMA → HAH z 19. 10. 2026. F1–F3 byly znovu porovnány s aktuálními
+- Podklad: Hodnocení SIGMA → HAH z 19. 10. 2026. F1–F3 byly znovu porovnány s aktuálními
   soubory; rozhodnutí níže se vztahují výhradně k tagu `C05`.
 - Ve zdrojích je 23 rezervačních a 23 notifikačních testů. C05 evidence
   výše zaznamenává 46 úspěšných testů za 0,393 s na Pythonu 3.11.9
@@ -493,3 +492,115 @@ Remaining evidence gaps:
 - Sjednotit ownership expirace v G3 s rezervačními službami a zachytit
   lazy expiry. Po opravách doložit návaznost původního tagu `C05`
   na nový reporting commit/tag a důkazy uzavření F1–F3.
+
+## Následné vypořádání nálezů po assessmentu C05
+
+| Oblast | Co bylo provedeno | Konkrétní evidence |
+|---|---|---|
+| F1 — specifikace a pravidla | C02 operations, pravidla a diagramové zdroje byly sjednoceny s cutoffem 15 minut, předstihem 24 hodin, prioritou schválení celého sálu a obnovou držení. | [`operations.md`](operations.md) OP-01, OP-01a a OP-03; [`intent_and_change.md`](intent_and_change.md) BR-07/BR-08; [`activity-op03-confirm.puml`](c02-diagrams/activity-op03-confirm.puml), [`activity-op01-create.puml`](c02-diagrams/activity-op01-create.puml), [`state.puml`](c02-diagrams/state.puml), [`use-case.puml`](c02-diagrams/use-case.puml) |
+| F2 — architektura a evidence | Pohledy C03 a evidence používají transakční outbox a samostatný dispatcher; starý `on_commit` popis je historická baseline. | [`architecture-and-decisions.md`](architecture-and-decisions.md); [`design-sequence-confirm.puml`](c03-diagrams/design-sequence-confirm.puml); [`static-architecture.puml`](c03-diagrams/static-architecture.puml); [`dispatcher.py`](../src/rezervace_divadlo/notification/dispatcher.py) |
+| F3 — DD a dispatcher | DD popisuje terminální přechod expirovaného lease do `FAILED`; dispatcher započítává úklidová selhání do `counts["failed"]`. | [`architecture-and-decisions.md`](architecture-and-decisions.md) — stavový model a pseudokód; [`dispatcher.py`](../src/rezervace_divadlo/notification/dispatcher.py); [`test_crash_on_last_attempt_becomes_failed_without_another_send`](../src/rezervace_divadlo/notification/tests.py) |
+| C04/Q evidence | Byl doplněn reprodukovatelný příkaz a testovací podklad pro lokální měření dvaceti souběžných pokusů. | [`measure_reservation_concurrency.py`](../src/rezervace_divadlo/reservation/management/commands/measure_reservation_concurrency.py); [`tests_concurrency.py`](../src/rezervace_divadlo/reservation/tests_concurrency.py) |
+| Confirm diagram | Zdroj a vyrenderovaný obrázek Confirm sekvence byly po architektonické opravě sjednoceny. | [`design-sequence-confirm.puml`](c03-diagrams/design-sequence-confirm.puml) a [`design-sequence-confirm.png`](c03-diagrams/design-sequence-confirm.png) |
+
+Stav vypořádání:
+
+| Finding | Stav v reporting baseline | Zbývající akce |
+|---|---|---|
+| F1 | CLOSED pro aktuální reporting baseline. | `touch_reservation` je zachycen v use-case, stavovém, activity a ownership pohledu; implementace je v [`services.py`](../src/rezervace_divadlo/reservation/services.py) a test obnovy v [`tests.py`](../src/rezervace_divadlo/reservation/tests.py). |
+| F2 | CLOSED pro aktuální architekturu a evidenci. | Udržovat [`architecture-and-decisions.md`](architecture-and-decisions.md), diagramy a [`dispatcher.py`](../src/rezervace_divadlo/notification/dispatcher.py) synchronizované při dalších změnách. |
+| F3 | CLOSED pro aktuální implementaci. | Zachovat [`test_crash_on_last_attempt_becomes_failed_without_another_send`](../src/rezervace_divadlo/notification/tests.py) a při změně dispatcheru znovu ověřit kontrakt počitadla. |
+
+
+## A — Technické argumenty a evidence aktuální baseline
+
+| Technický argument | Aktuální tvrzení | Evidence | Omezení |
+|---|---|---|---|
+| Životní cyklus rezervace a exkluzivita sedadel | Create atomicky zablokuje vybraná sedadla; Confirm provede přímé potvrzení nebo odešle rezervaci ke schválení; Cancel, Reject a Expire uvolní aktivní alokace a zachovají historii. | `reservation/services.py`, `reservation/models.py`, `docs/operations.md`, `docs/intent_and_change.md`, testy `reservation`. | Ověření probíhá přes aplikační služby, nikoli přes HTTP API; API není součástí aktuálního projektu. |
+| Schvalovací a časová pravidla | Hranice 10 sedadel, priorita celého sálu, cutoff 15 minut, předstih 24 hodin a pětiminutové obnovitelné držení jsou implementované a ověřené na hranicích. | OP-01, OP-01a a OP-03 v `docs/operations.md`, pravidla v `docs/intent_and_change.md`, testy časových hranic a obnovy držení. | Důkaz je z lokální testovací databáze; není to důkaz produkčního nasazení. |
+| Notifikační integrace | Rezervační přechod zapíše neměnný outbox snapshot ve stejné transakci; samostatný dispatcher provádí claim, doručení, retry, backoff a fencing. | `docs/architecture-and-decisions.md`, `docs/c03-diagrams/`, `notification/services.py`, `notification/dispatcher.py`, testy `notification`. | Externí doručení je zastoupeno adaptérem nebo test double; skutečný externí receiver není součástí baseline. |
+| Lokální souběh rezervací | Měření 20 workerů v 5 kolech vytvořilo 5 vítězných alokací, zaznamenalo 95 konfliktů, 0 `busy`, medián latence 201,14 ms a propustnost 19,6 pokusu/s. | `measure_reservation_concurrency --workers 20 --rounds 5` po migraci lokální SQLite databáze. | Výsledek platí pouze pro deklarovaný lokální workload a SQLite; není kapacitní garancí pro produkční databázi. |
+| Aktuální verifikace | Aktuální větev má 48 testů a `manage.py check` nehlásí systémové chyby. | `python src/rezervace_divadlo/manage.py test notification reservation`; aktuální ověřovací běh. | Nejsou plně ověřené migrace existujících dat, produkční recovery ani externí doručení. |
+
+## B — Risk register aktuální baseline
+
+Následující rizika jsou samostatná od historických findings F1–F3. Likelihood
+a impact používají stupnici 1–3; priorita je `L × I`. Skutečné reziduální
+riziko je `NOT VERIFIED`, dokud není doložena účinnost opatření.
+
+### R-01 — Přenositelnost SQLite concurrency
+
+- **Kategorie:** Technická / výkonová
+- **Příčina → nejistá událost → důsledek:** SQLite serializuje zápisy; produkční
+  workload nebo databázový engine se bude chovat jinak než lokální měření;
+  vzroste latence, lock contention nebo počet odmítnutých požadavků.
+- **Počáteční L / I / priorita:** 2 / 3 / HIGH.
+- **Response:** MITIGATE — zachovat reprodukovatelné lokální měření a před
+  volbou produkční databáze definovat workload a prahové hodnoty.
+- **Opatření / vlastník / termín:** HAH; zapsat workload, limity a další
+  měření před příštím CP1 review.
+- **Důkaz účinnosti:** 20 workerů × 5 kol: 0 `busy`, medián 201,14 ms,
+  propustnost 19,6 pokusu/s.
+- **Očekávané reziduum:** 1 / 3 / MEDIUM.
+- **Skutečné reziduum:** NOT VERIFIED pro produkční databázi.
+- **Trigger / contingency / další review:** `busy` nebo latence nad limitem;
+  vyhodnotit PostgreSQL či jinou strategii zamykání; review při CP1.
+- **Rozhodnutí:** Přijmout omezení pouze pro lokální baseline; vlastník HAH.
+
+### R-02 — Duplicity při at-least-once notifikacích
+
+- **Kategorie:** Integrace / spolehlivost
+- **Příčina → nejistá událost → důsledek:** Worker selže po přijetí zprávy
+  externím receiverem, ale před uložením `SENT`; retry doručí duplicitu.
+- **Počáteční L / I / priorita:** 2 / 3 / HIGH.
+- **Response:** MITIGATE — zachovat stabilní ID zprávy a `Idempotency-Key`;
+  vyžadovat deduplikaci na straně receiveru.
+- **Opatření / vlastník / termín:** vlastník notifikační integrace; zdokumentovat
+  a ověřit idempotenci receiveru před externí integrací.
+- **Důkaz účinnosti:** test HTTP adaptéru ověřuje stabilní idempotency key;
+  deduplikace skutečného receiveru ověřena není.
+- **Očekávané reziduum:** 1 / 2 / MEDIUM.
+- **Skutečné reziduum:** NOT VERIFIED.
+- **Trigger / contingency / další review:** duplicita nebo receiver bez
+  idempotence; pozastavit doručování či provést reconciliaci podle ID.
+- **Rozhodnutí:** Přijmout dočasně do uzavření kontraktu receiveru; vlastník HAH.
+
+### R-03 — Dostupnost dispatcheru a expiry workeru
+
+- **Kategorie:** Provozní
+- **Příčina → nejistá událost → důsledek:** Dispatcher nebo expiry command
+  neběží, zpozdí se nebo ztratí lease; doručení a persistované `EXPIRED`
+  přechody se zpozdí.
+- **Počáteční L / I / priorita:** 2 / 3 / HIGH.
+- **Response:** MITIGATE — používat management commands s `--watch`, sledovat
+  výstup a zachovat lease recovery a retry.
+- **Opatření / vlastník / termín:** provozní vlastník; definovat supervision,
+  restart policy a alert thresholds před nasazením.
+- **Důkaz účinnosti:** testy commandů, lease recovery a retry procházejí;
+  dlouhý běh ani restart drill proveden nebyl.
+- **Očekávané reziduum:** 1 / 2 / MEDIUM.
+- **Skutečné reziduum:** NOT VERIFIED.
+- **Trigger / contingency / další review:** stale `PENDING` nebo overdue hold;
+  restart workeru a one-shot recovery; review při operational readiness.
+- **Rozhodnutí:** Přijmout pouze pro development baseline; produkční provoz
+  vyžaduje doplnění supervision evidence.
+
+### R-04 — Migrace existujících dat
+
+- **Kategorie:** Data / migrace
+- **Příčina → nejistá událost → důsledek:** Migrace `0002` převádí staré
+  rezervace do více-sedadlového modelu, ale nebyla provedena fixture-based
+  zkouška reprezentativní staré databáze; může vzniknout ztráta dat nebo
+  nesprávná aktivní alokace.
+- **Počáteční L / I / priorita:** 2 / 3 / HIGH.
+- **Response:** MITIGATE — vytvořit legacy fixture, provést forward migration,
+  ověřit rezervace i alokace a zachovat backup.
+- **Opatření / vlastník / termín:** vlastník persistence; provést rehearsal
+  před použitím existující databáze.
+- **Důkaz účinnosti:** existují migrační soubory a požadavek na backup;
+  fixture-based rehearsal doložen není.
+- **Očekávané reziduum:** 1 / 2 / MEDIUM.
+- **Skutečné reziduum:** NOT VERIFIED.
+- **Trigger / contingency / další review:** nesoulad počtů nebo kontrol migrace;
+  obnovit backup a zastavit rollout; review před data-bearing deploymentem.
+- **Rozhodnutí:** Pro produkční rollout zatím nepřijmout; vlastník HAH.

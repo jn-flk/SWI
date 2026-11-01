@@ -34,6 +34,8 @@ end note
 switch (Další krok?)
 case (potvrdí)
   :→ OP-03 Potvrdit rezervaci;
+case (obnoví aktivitu)
+  :→ OP-01a Obnovit držení;\nDRAFT zůstává DRAFT;
 case (zruší)
   :→ OP-04 Zrušit rezervaci;
 case (neaktivní ≥ 5 min)

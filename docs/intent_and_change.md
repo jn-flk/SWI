@@ -96,7 +96,7 @@ rezervační relace se po pěti minutách ukončí a aktivní držení přejde d
 BR-08 — Bulk approval lead time
 Hromadná rezervace musí být vytvořena s dostatečným předstihem před začátkem
 představení, aby zůstala lhůta pro manuální schválení. Konkrétní minimální
-předstih je součástí rezervační politiky; po jeho překročení systém
+předstih je 24 hodin (`RESERVATION_APPROVAL_HOURS`); po jeho překročení systém
 hromadnou žádost odmítne vytvořit nebo přijmout ke schválení.
 
 ## Kontrola přijetí požadavků

@@ -9,7 +9,8 @@
 
 ## Struktura projektu
 
-Jeden Django projekt `rezervace_divadlo` s jednou aplikací: `reservation`.
+Jeden Django projekt `rezervace_divadlo` se dvěma aplikacemi: `reservation`
+pro lifecycle a `notification` pro outbox/delivery.
 
 
 
@@ -55,8 +56,8 @@ bez ohledu na počet sedadel.
 
 `reservation/services.py` obsahuje OP-01 až OP-05, obnovu aktivity a expiraci.
 Modely popisují data a databázová omezení. Testy v `reservation/tests.py`
-volají služby přímo; reservation nemá HTTP API. `notifications.py` je lokální adaptér
-Notification Service, volaný až po potvrzení transakce.
+volají služby přímo; reservation nemá HTTP API. `notification` zapisuje
+outboxové požadavky v rezervační transakci a samostatný dispatcher je doručuje.
 
 `expire_reservations --watch` zajišťuje časovač. I při jeho zpoždění služby
 odmítnou operaci po deadline a dostupnost ignoruje vypršené držení bez
@@ -97,7 +98,7 @@ Doklady níže uvádějí soubor a funkci/model. [Testy](../src/rezervace_divadl
 | Ověřit oprávnění a platný `DRAFT`. | Kontrola vlastníka/oprávnění, deadline a zdrojového stavu. | [services.py][services]: `_authorize_owner`, `_expire_one`, `confirm_reservation` |
 | Ověřit sedadla a předstih. | Aktivní sedadla; více než 10 nebo celý sál vyžaduje schválení. Cutoff 15 min, pro schvalování předstih 24 h. | [services.py][services]: `confirm_reservation`, `_requires_approval`, `_check_lead_time` |
 | Změnit a uložit stav. | `CONFIRMED` nebo `PENDING_APPROVAL`; zrušit držení, případně nastavit deadline schválení. Blokování zůstává, kolize se znovu nekontroluje. | [services.py][services]: `_set_status`, `confirm_reservation` |
-| Vrátit výsledek. | Vrátit `Reservation`; u schvalovací větve po commitu zalogovat žádost. | [services.py][services]: `confirm_reservation`, `_notify`; [notifications.py][notifications]: `notify` |
+| Vrátit výsledek. | Vrátit `Reservation`; u schvalovací větve ve stejné transakci zapsat `NotificationRequest`. | [services.py][services]: `confirm_reservation`, `_notify`; [notification services.py][notification-services]: `record_notification` |
 
 ### Důležitá chybová větev
 
@@ -117,7 +118,7 @@ Doklady níže uvádějí soubor a funkci/model. [Testy](../src/rezervace_divadl
 | Rezervační služby | Modul `services.py` | Kontroly, rozhodnutí a transakce. | [services.py][services]: `confirm_reservation` a pomocné funkce |
 | Doménové modely | Modul `models.py`: Reservation, ReservationSeat, Seat, Performance, Hall, Play | Stav, vztahy a DB omezení. | [models.py][models] |
 | Konfigurace | Modul `settings.py` | Limity politiky a připojení DB. | [settings.py][settings] |
-| Notifikace | Modul `notifications.py` | Lokální log události po commitu. | [notifications.py][notifications]: `notify` |
+| Notifikace | Aplikace `notification` | Transakční outbox a asynchronní dispatcher; výchozí sender loguje lokálně. | [notification services.py][notification-services], [dispatcher.py][dispatcher] |
 
 ### Stav, změna stavu a pravidlo
 
@@ -141,7 +142,7 @@ BR-02 chrání už Create a DB constraint `unique_active_performance_seat`; Conf
 | Závislost | Kde se napojuje | Která část zná technické API | Doklad |
 |---|---|---|---|
 | SQLite přes Django ORM | Načtení, uložení a transakce. | `services.py` používá ORM a `transaction.atomic`; modely definují constrainty. | [services.py][services], [models.py][models], [settings.py][settings] |
-| Notification Service — lokální adaptér | `_notify` po commitu při žádosti o schválení nebo expiraci. | `notifications.py` používá logging; vzdálená služba není připojena. | [services.py][services]: `_notify`; [notifications.py][notifications]: `notify` |
+| Notification Service — outbox a dispatcher | `_notify` zapíše outbox ve stejné transakci při žádosti o schválení nebo expiraci; samostatný dispatcher doručuje později. | `notification.services` validuje a snapshotuje událost; `notification.adapters` obsahuje logging/HTTP sendery. | [notification services.py][notification-services]; [dispatcher.py][dispatcher] |
 | Django auth | Kontrola předaného uživatele a oprávnění. | `services.py`: `is_authenticated`, `is_active`, `has_perm`. | [services.py][services]: `_authorize_owner` |
 
 ### AS-IS strukturální diagram
@@ -170,7 +171,7 @@ Sledovaný scénář zůstává OP-03 Confirm Reservation, konkrétně větev
 |---|---|---|---|
 | D1 | `BR-02`, `BR-06`, `REQ-04`, C01 pressure „20× souběžných rezervací“, Part A: SQLite `IMMEDIATE`, chyba `busy` | Dva souběžné požadavky mohou oba vidět `DRAFT` nebo volné sedadlo; SQLite serializuje všechny zápisy, takže každý další zápis v transakci prodlužuje čekání ostatních. | Kde se dělá autoritativní rozhodnutí o přechodu a alokaci, aby uspěl jen jeden přechod a `BR-02` platilo i při souběhu? |
 | D2 | `REQ-06`, `REQ-07`, `BR-08`, statechart: lhůta schválení 24 h, `hold_until` 5 min (`BR-07`) | `PENDING_APPROVAL` přežívá původní request; rozhodnutí přijde později od jiného aktéra nebo od časovače. | Kdo vlastní pending stav a lhůty a kdo provede pozdější přechod (approve / reject / expire)? |
-| D3 | Hranice Notification Service (`intent_and_change.md`), Part A: `_notify` přes `on_commit(robust=True)`, adaptér jen loguje; C02 známé omezení „retry není implementováno“ | Změna stavu je commitnutá dřív, než se notifikace odešle; selhání nebo pád procesu mezi commitem a odesláním notifikaci ztratí. U `approval_requested` to znamená, že se schvalovatel o žádosti nedozví a sedadla zůstanou 24 h zbytečně blokovaná. | Má selhání notifikace ovlivnit výsledek Confirm, kdo vlastní stav doručení a kdo řeší retry? |
+| D3 | Hranice Notification Service a historická Part A: `_notify` přes `on_commit(robust=True)`, adaptér jen loguje; C02 známé omezení „retry není implementováno“ | Historický návrh mohl ztratit notifikaci mezi commitem a odesláním. Aktuální C05 řešení zapisuje outbox ve stejné transakci a retry vlastní dispatcher. | Má selhání notifikace ovlivnit výsledek Confirm, kdo vlastní stav doručení a kdo řeší retry? |
 | D4 | Statechart C02 (3 spouštěče: návštěvník, schvalovatel, časovač), Part A: „přímé změny stavů přes ORM obcházejí pravidla služeb“ | Stejný lifecycle mění více vstupních bodů v různých procesech (`expire_reservations --watch`, testy/shell). | Která jediná část smí rozhodovat a měnit lifecycle `Reservation`, a které části ho smí jen vyžádat? |
 
 Mechanismy (transakce, `select_for_update`, outbox, worker) jsou až kandidátní
@@ -283,7 +284,7 @@ bude ověřen v L1, ale nemá dvě rovnocenné reálné alternativy pro náš st
 | D2 – zpožděné schválení | Pokud se `approval_requested` ztratí, schvalovatel se o žádosti nedozví; rezervace po 24 h vyprší a sedadla jsou celou dobu zbytečně blokovaná. | Schvalovatel je informován, jakmile je služba dostupná (zpoždění = interval workeru + backoff, ≪ 24 h). Lhůtu a přechod dál vlastní Reservation Management – dispatcher je nemění. |
 | D1 – konzistence a souběh na SQLite | Žádný zápis navíc v rezervační transakci. Volání je mimo transakci, takže zámek nedrží; ale request (a vlákno serveru) čeká na externí timeout. | Jeden `INSERT` navíc v transakci Confirm/Approve/Expire (krátký, bez I/O). Dispatcher zapisuje stav doručení → další spisovatel do SQLite. Nutné: externí volání **mimo** transakci (claim → commit → send → mark), jinak by držel writer lock. |
 | D4 – ownership / změna | Notifikační logika je volána přímo ze služeb; R7 i R8 v praxi leží v Reservation Management. Změna vendor API nebo retry politiky zasáhne request cestu. | R7 = Reservation Management, R8 = Notification Dispatch, vendor API jen v Notification Integration. Změna doručování nezasahuje do lifecycle kódu. |
-| Provozní složitost | Nejjednodušší: bez nové tabulky, bez dalšího procesu. | Nová tabulka + migrace, příkaz/smyčka dispatcheru, monitoring `FAILED`. Background proces už existuje (`expire_reservations --watch`), dispatch lze přidat do stejné smyčky – nový deployable nevzniká. |
+| Provozní složitost | Nejjednodušší: bez nové tabulky, bez dalšího procesu. | Nová tabulka + migrace, samostatný příkaz `dispatch_notifications --watch` a monitoring `FAILED`/stáří `PENDING`. Dispatcher je samostatný worker, ale ne nový aplikační deployable. |
 
 ### E3. Průchod scénářem
 
@@ -312,9 +313,9 @@ selhání notifikace může tiše zneplatnit D2 (schvalovatel o žádosti neví)
 Kontext:
   Confirm (> 10 sedadel nebo celý sál) převádí rezervaci do PENDING_APPROVAL
   a schvalovatel o tom musí být informován, aby mohl rozhodnout do 24 h.
-  AS-IS volá lokální adaptér přes transaction.on_commit(robust=True); selhání
-  se jen zaloguje a stav doručení se nikde neukládá. Aplikace běží jako
-  Django proces + background proces expire_reservations --watch nad SQLite.
+  AS-IS volal lokální adaptér přes transaction.on_commit(robust=True); selhání
+  se jen zalogovalo a stav doručení se nikde neukládal. Aktuální C05 návrh
+  používá transakční outbox a samostatný dispatcher nad SQLite.
 
 Drivery:
   D3 – Notification Service může selhat; změna stavu je commitnuta dřív.
@@ -368,6 +369,8 @@ Rozhodnutí znovu otevřeme, když:
 [models]: ../src/rezervace_divadlo/reservation/models.py
 [settings]: ../src/rezervace_divadlo/rezervace_divadlo/settings.py
 [notifications]: ../src/rezervace_divadlo/reservation/notifications.py
+[notification-services]: ../src/rezervace_divadlo/notification/services.py
+[dispatcher]: ../src/rezervace_divadlo/notification/dispatcher.py
 
 ## C05 Detailed Design
 
@@ -450,6 +453,7 @@ PENDING --úspěšné odeslání--> SENT
 PENDING --chyba odeslání a attempts < max--> PENDING + next_attempt_at
 PENDING --chyba odeslání a attempts >= max--> FAILED
 PENDING + expirovaný lease --obnovení--> PENDING + nový claim_token
+PENDING + expirovaný lease + attempts >= max --sweep--> FAILED
 ```
 
 Platí:
@@ -501,6 +505,7 @@ Platí:
 ```text
 ověř nastavení dispatcheru
 opakuj nejvýše batch_size-krát:
+    označ expirované claims s attempts >= max jako FAILED a započti je do failed
     převezmi první připravený PENDING požadavek
     pokud žádný požadavek neexistuje:
         skonči

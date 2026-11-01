@@ -8,7 +8,7 @@ package "Reservation System" {
   component "Dostupnost a alokace\ndostupnost + blokování sedadel\nvlastní: invariant aktivní alokace" as AA
   component "Schvalovací workflow\nschvalovací politika + rozhodnutí\nvlastní: rozhodnutí/lhůta schválení" as AW
   component "Plánovač expirace\nspouštění expirace" as ES
-  component "Integrace notifikací\npost-commit adaptér" as NI
+  component "Notification outbox\n+ dispatcher" as NI
   database "Relační persistence\nDjango ORM / SQLite" as DB
 }
 
@@ -18,11 +18,11 @@ RM --> AA : vytvoření alokace /\nuvolnění sedadel
 RM --> AW : vyhodnocení schválení /\npožadavek na rozhodnutí
 AW --> RM : přechod schválit nebo zamítnout
 ES --> RM : expirace rezervace
-RM --> NI : událost po commitu
+RM --> NI : transakční zápis\nNotificationRequest
 RM --> DB : uložení životního cyklu
 AA --> DB : uložení alokací
 AW --> DB : uložení lhůty
-NI --> NS : požadavek na notifikaci
+NI --> NS : asynchronní doručení\nmimo DB transakci
 
 note right of RM
   ADR: jedna Django aplikace;

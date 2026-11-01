@@ -24,7 +24,10 @@ Předpoklady:
 - uživatel je oprávněn rezervace vytvářet;
 - představení existuje a všechna sedadla patří do sálu představení;
 - seznam vybraných sedadel není prázdný a neobsahuje duplicity;
+- vybraná sedadla jsou aktivní;
 - délka držení je kladná a je určena systémem.
+- představení začíná později než za 15 minut; pokud rezervace vyžaduje
+  schválení (více než 10 sedadel nebo celý sál), začíná nejméně za 24 hodin.
 
 Stav po úspěšném provedení:
 - existuje právě jedna nová rezervace ve stavu `DRAFT`;
@@ -32,7 +35,7 @@ Stav po úspěšném provedení:
 
 Změna stavu: `[none] -> DRAFT`.
 
-Odkaz na pravidla / invarianty: BR-01, BR-02, BR-05.
+Odkaz na pravidla / invarianty: BR-01, BR-02, BR-05, BR-07, BR-08.
 
 Hlavní úspěšný scénář:
 1. Uživatel zobrazí sál a vybere jedno nebo více volných sedadel.
@@ -60,6 +63,26 @@ Příklady ověření:
 - `start == end` -> odmítnuto;
 - neznámý Resource -> odmítnuto.
 
+## OP-01a — Renew Reservation Hold
+
+Cíl / hodnota pro uživatele:
+Aktivní návštěvník může při práci s výběrem prodloužit platné držení
+rezervace `DRAFT`, aby neskončilo během používání.
+
+Předpoklady:
+- rezervace existuje, vlastník je oprávněný a stav je `DRAFT`;
+- `hold_until` ještě nevypršel.
+
+Chování:
+- systém nastaví `hold_until` na nejdřívější z `now + 5 minut` a začátku
+  představení;
+- vypršel-li původní hold, systém nejprve nastaví `EXPIRED`, uvolní sedadla
+  a obnovu odmítne;
+- žádný jiný stav nelze touto operací obnovit a držení se nikdy neobnovuje
+  zpětně.
+
+Odkaz na implementaci: `reservation.services.touch_reservation`; pravidla
+BR-03 a BR-07.
 
 ## OP-02 — Check Availability
 
@@ -118,7 +141,9 @@ Pozorovatelné požadavky:
 REQ-03: Systém nastaví existující `DRAFT` na `CONFIRMED`, pokud obsahuje
 nejvýše deset sedadel, nebo na `PENDING_APPROVAL`, pokud obsahuje více než deset
 sedadel či celý sál. V obou případech musí být držení platné a všechna
-sedadla aktivní. Sedadla jsou blokována již od vytvoření `DRAFT` podle
+sedadla aktivní, musí platit 15minutový cutoff a u schvalovací větve také
+minimální předstih 24 hodin. Schvalovací větev nastaví
+`approval_deadline = now + 24 h`. Sedadla jsou blokována již od vytvoření `DRAFT` podle
 BR-02; kontrola kolize se při potvrzení neopakuje.
 
 REQ-04: Při souběžných pokusech o potvrzení stejné rezervace uspěje pouze
@@ -127,6 +152,7 @@ jeden přechod z `DRAFT`.
 Předpoklady:
 - rezervace existuje a je ve stavu `DRAFT`;
 - uživatel je oprávněn ji potvrdit.
+- `hold_until` ještě nevypršel;
 
 Stav po úspěšném provedení:
 - podle větve je rezervace `CONFIRMED` nebo `PENDING_APPROVAL` a všechna
@@ -139,14 +165,19 @@ Odkaz na pravidla / invarianty: BR-01, BR-02, BR-03, BR-04, BR-05.
 
 Hlavní úspěšný scénář:
 1. Systém ověří oprávnění, existenci a stav `DRAFT`.
-2. Ověří počet sedadel, případnou rezervaci celého sálu, platnost držení
-	a aktivní sedadla. Dostupnost ani kolizi znovu nekontroluje podle BR-04.
-3. Atomicky nastaví `CONFIRMED` nebo `PENDING_APPROVAL`.
-4. Systém vrátí aktuální stav.
+2. Pokud `hold_until` vypršel, atomicky nastaví `EXPIRED`, uvolní sedadla
+   a požadavek odmítne.
+3. Ověří aktivní sedadla, cutoff 15 minut a u schvalovací větve předstih
+   24 hodin. Ověří počet sedadel a případnou rezervaci celého sálu.
+   Dostupnost ani kolizi znovu nekontroluje podle BR-04.
+4. Atomicky nastaví `CONFIRMED` nebo `PENDING_APPROVAL`; ve druhé větvi
+   nastaví `approval_deadline = now + 24 h` a zapíše outbox událost.
+5. Systém vrátí aktuální stav.
 
 Alternativní / chybové výsledky:
 - neaktivní sedadlo -> odmítnout, stav zůstává `DRAFT`;
 - vypršené držení -> odmítnout a držení přejde do `EXPIRED`;
+- porušení cutoffu nebo lead-time -> odmítnout, stav zůstává `DRAFT`;
 - jiný zdrojový stav -> odmítnout bez změny;
 - při souběhu potvrzení stejné rezervace uspěje pouze první atomický
 	přechod z `DRAFT`; další pokus je odmítnut kvůli zdrojovému stavu.
