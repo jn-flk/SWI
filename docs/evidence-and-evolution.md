@@ -496,14 +496,6 @@ Remaining evidence gaps:
 
 ## Následné vypořádání nálezů po assessmentu C05
 
-Assessment výše zůstává historickým záznamem stavu tagu `C05`. Dispozice
-`ACCEPTED — change required` proto popisují tehdejší rozhodnutí a nejsou
-zpětně přepisovány jako důkaz, že opravy v tagu `C05` již existovaly.
-
-V navazujících změnách větve byly provedeny změny požadované assessmentem
-(`49a276a` a oprava obrázku v `55fe41c`; `6762a24` pouze sjednocuje české
-znění dokumentace):
-
 | Oblast | Co bylo provedeno | Konkrétní evidence |
 |---|---|---|
 | F1 — specifikace a pravidla | C02 operations, pravidla a diagramové zdroje byly sjednoceny s cutoffem 15 minut, předstihem 24 hodin, prioritou schválení celého sálu a obnovou držení. | [`operations.md`](operations.md) OP-01, OP-01a a OP-03; [`intent_and_change.md`](intent_and_change.md) BR-07/BR-08; [`activity-op03-confirm.puml`](c02-diagrams/activity-op03-confirm.puml), [`activity-op01-create.puml`](c02-diagrams/activity-op01-create.puml), [`state.puml`](c02-diagrams/state.puml), [`use-case.puml`](c02-diagrams/use-case.puml) |
@@ -522,9 +514,6 @@ Stav vypořádání:
 
 
 ## A — Technické argumenty a evidence aktuální baseline
-
-Část A obhajuje aktuální reporting baseline. Nemíchá tedy výsledek assessmentu
-tagu `C05` s důkazem změn provedených později.
 
 | Technický argument | Aktuální tvrzení | Evidence | Omezení |
 |---|---|---|---|
