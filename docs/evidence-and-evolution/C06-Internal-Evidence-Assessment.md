@@ -10,10 +10,10 @@ Assessed baseline:
   oprav z PR #17. Datum zápisu: 1. 11. 2026.
 - Historické milníky: `C01` (`1137bbf`), `C02` (`6ebfcc1`),
   `C03` (`1799c7b`). Tag `C05` zahrnuje implementaci outboxu, DD
-  a doplněnou verifikaci; identifikuje také C05 evidenci s TODO v [C05.md](C05.md).
+  a doplněnou verifikaci; identifikuje také C05 evidenci s TODO v [C05-DD-Verification.md](C05-DD-Verification.md).
 - Podklad: Hodnocení SIGMA → HAH z 19. 10. 2026. F1–F3 byly znovu porovnány s aktuálními
   soubory; rozhodnutí níže se vztahují výhradně k tagu `C05`.
-- Ve zdrojích je 23 rezervačních a 23 notifikačních testů. [C05 evidence](C05.md)
+- Ve zdrojích je 23 rezervačních a 23 notifikačních testů. [C05 evidence](C05-DD-Verification.md)
   zaznamenává 46 úspěšných testů za 0,393 s na Pythonu 3.11.9
   s Django 5.2.18. Při tomto zápisu testy znovu spuštěny nebyly, protože
   dostupnému prostředí chybí Django. Nové ověření je statické porovnání
@@ -26,7 +26,7 @@ Verified findings:
   schvalovanou rezervaci a `approval_deadline = now + 24 h`. OP-03
   neodkazuje na BR-08; obnova držení není plně zachycena ve specifikaci
   a diagramech. Guardy stavového diagramu se překrývají pro celý sál
-  s nejvýše 10 sedadly. Evidence: `operations/C02.md`, `intent_and_change/C02.md`,
+  s nejvýše 10 sedadly. Evidence: `operations/C02-Operations-and-Requirements.md`, `intent_and_change/C02-Domain-Rules-and-Baseline.md`,
   `c02-diagrams/state.puml` a aktivity oproti
   `reservation/services.py:_check_lead_time`, `_requires_approval`,
   `confirm_reservation`, `touch_reservation` a příslušným testům.

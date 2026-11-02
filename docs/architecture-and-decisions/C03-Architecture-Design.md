@@ -7,9 +7,9 @@
 | Položka | Hodnota |
 |---|---|
 | Operace | OP-03 — Confirm Reservation |
-| Požadavky | REQ-03, REQ-04 — [operations/C02.md](../operations/C02.md) |
-| Pravidla | BR-02, BR-04, BR-06, BR-07, BR-08 — [intent_and_change/C02.md](../intent_and_change/C02.md) |
-| Baseline | v0.2 — [evidence-and-evolution/C02.md](../evidence-and-evolution/C02.md) |
+| Požadavky | REQ-03, REQ-04 — [operations/C02-Operations-and-Requirements.md](../operations/C02-Operations-and-Requirements.md) |
+| Pravidla | BR-02, BR-04, BR-06, BR-07, BR-08 — [intent_and_change/C02-Domain-Rules-and-Baseline.md](../intent_and_change/C02-Domain-Rules-and-Baseline.md) |
+| Baseline | v0.2 — [evidence-and-evolution/C02-Specification-to-Running-App.md](../evidence-and-evolution/C02-Specification-to-Running-App.md) |
 
 Doklady níže uvádějí soubor a funkci/model. [Testy](../../src/rezervace_divadlo/reservation/tests.py) byly přečteny, nově se nespouštěly.
 

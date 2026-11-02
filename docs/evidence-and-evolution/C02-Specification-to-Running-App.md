@@ -3,7 +3,7 @@
 ## Přijatá baseline:
 
 Výchozí specifikací je baseline v0.2 se schvalováním, popsaná v
-[operations/C02.md](../operations/C02.md), [intent_and_change/C02.md](../intent_and_change/C02.md)
+[operations/C02-Operations-and-Requirements.md](../operations/C02-Operations-and-Requirements.md), [intent_and_change/C02-Domain-Rules-and-Baseline.md](../intent_and_change/C02-Domain-Rules-and-Baseline.md)
 a diagramech v `c02-diagrams/`. Pro implementaci byly uživatelem přijaty
 následující podmínky:
 
@@ -79,7 +79,7 @@ Příkazy z kořene repozitáře:
   Cancel a blokování od Create bez opakované kontroly kolize.
 - Hranice schvalování byla sjednocena na nejvýše 10 sedadel pro přímé
   potvrzení a více než 10 sedadel nebo celý sál pro `PENDING_APPROVAL`.
-  Implementace, testy, `intent_and_change/C02.md` i OP-03 v `operations/C02.md`
+  Implementace, testy, `intent_and_change/C02-Domain-Rules-and-Baseline.md` i OP-03 v `operations/C02-Operations-and-Requirements.md`
   nyní používají stejnou hranici.
 - BR-08 je v souladu s implementací konkretizován jako minimální předstih
   24 hodin při vytvoření i potvrzení hromadné rezervace. Schvalovací lhůta
