@@ -3,8 +3,8 @@
 ## Přijatá baseline:
 
 Výchozí specifikací je baseline v0.2 se schvalováním, popsaná v
-[operations/C02-Operations-and-Requirements.md](../operations/C02-Operations-and-Requirements.md), [intent_and_change/C02-Domain-Rules-and-Baseline.md](../intent_and_change/C02-Domain-Rules-and-Baseline.md)
-a diagramech v `c02-diagrams/`. Pro implementaci byly uživatelem přijaty
+[intent-and-change/C02-Operations-and-Requirements.md](../intent-and-change/C02-Operations-and-Requirements.md), [intent-and-change/C02-Domain-Rules-and-Baseline.md](../intent-and-change/C02-Domain-Rules-and-Baseline.md)
+a diagramech v `diagrams/c02/`. Pro implementaci byly uživatelem přijaty
 následující podmínky:
 
 - Jedna rezervace obsahuje jedno nebo více sedadel pro konkrétní představení.
@@ -79,7 +79,7 @@ Příkazy z kořene repozitáře:
   Cancel a blokování od Create bez opakované kontroly kolize.
 - Hranice schvalování byla sjednocena na nejvýše 10 sedadel pro přímé
   potvrzení a více než 10 sedadel nebo celý sál pro `PENDING_APPROVAL`.
-  Implementace, testy, `intent_and_change/C02-Domain-Rules-and-Baseline.md` i OP-03 v `operations/C02-Operations-and-Requirements.md`
+  Implementace, testy, `intent-and-change/C02-Domain-Rules-and-Baseline.md` i OP-03 v `intent-and-change/C02-Operations-and-Requirements.md`
   nyní používají stejnou hranici.
 - BR-08 je v souladu s implementací konkretizován jako minimální předstih
   24 hodin při vytvoření i potvrzení hromadné rezervace. Schvalovací lhůta
@@ -106,7 +106,7 @@ způsob volání aplikace; business operace se nadále provádějí přes služb
 - Doplnit diagram aktivity OP-02 a časové podmínky v diagramech;
   explicitní schválení baseline v0.1/v0.2 týmem není doloženo.
   *(Stav C08: diagram OP-02 doplněn —
-  [activity-op02-availability.puml](../c02-diagrams/activity-op02-availability.puml);
+  [activity-op02-availability.puml](../diagrams/c02/activity-op02-availability.puml);
   časové podmínky doplněny při vypořádání F1.)*
 - Aktuální jednoduché testy neověřují paralelní zápisy, výkon při
   20 souběžných požadavcích ani zachování dat při migraci existující databáze.

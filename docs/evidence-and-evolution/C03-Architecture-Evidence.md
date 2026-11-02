@@ -36,13 +36,13 @@ je za adapter boundary a je volán přes post-commit notifikaci.
 
 Views:
 
-- domain class — [domain-model.puml](../c03-diagrams/domain-model.puml)
-- context — [context.puml](../c03-diagrams/context.puml)
-- static architecture — [static-architecture.puml](../c03-diagrams/static-architecture.puml)
-- state ownership — [state-ownership.puml](../c03-diagrams/state-ownership.puml)
-- runtime/deployment — [runtime-deployment.puml](../c03-diagrams/runtime-deployment.puml)
-- design sequence — [design-sequence-confirm.puml](../c03-diagrams/design-sequence-confirm.puml)
-- focused design class — [focused-design-class.puml](../c03-diagrams/focused-design-class.puml)
+- domain class — [domain-model.puml](../diagrams/c03/domain-model.puml)
+- context — [context.puml](../diagrams/c03/context.puml)
+- static architecture — [static-architecture.puml](../diagrams/c03/static-architecture.puml)
+- state ownership — [state-ownership.puml](../diagrams/c03/state-ownership.puml)
+- runtime/deployment — [runtime-deployment.puml](../diagrams/c03/runtime-deployment.puml)
+- design sequence — [design-sequence-confirm.puml](../diagrams/c03/design-sequence-confirm.puml)
+- focused design class — [focused-design-class.puml](../diagrams/c03/focused-design-class.puml)
 
 Cross-view issues found/resolved: Ownership přechodů byl doplněn tak, že
 Reservation Management rozhoduje o přímém potvrzení a odeslání ke schválení,

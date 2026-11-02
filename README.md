@@ -17,7 +17,7 @@ Co konkrétně rezervujeme?
 - Společné pravidlo – stejné sedadlo nesmí být současně blokováno více aktivními rezervacemi pro stejné představení
 - Hranice systému – služba oznámení (Notification Service)
 
-Úplný popis domény je v [dokumentu o záměru a změnách](docs/intent_and_change/).
+Úplný popis domény je v [dokumentu o záměru a změnách](docs/intent-and-change/).
 
 ## Instalace a spuštění
 
@@ -62,7 +62,7 @@ C02 rozšiřuje původní rezervaci jednoho sedadla o skupinové rezervace, ruč
 
 `DRAFT`, `PENDING_APPROVAL` a `CONFIRMED` blokují sedadla. Přechod do `CANCELLED`, `REJECTED` nebo `EXPIRED` sedadla uvolní a zachová historii rezervace. Potvrzení ani schválení neopakují kontrolu kolize, protože sedadla jsou blokována od vytvoření.
 
-Služby pokrývají vytvoření, zjištění dostupnosti, potvrzení, zrušení, schválení či zamítnutí, obnovení držení a expiraci. Diagram případů užití přidává schvalovatele a systémový časovač; stavový diagram a diagramy aktivit popisují nové přechody a uvolnění sedadel. Zdroje i obrázky jsou v [docs/c02-diagrams](docs/c02-diagrams/).
+Služby pokrývají vytvoření, zjištění dostupnosti, potvrzení, zrušení, schválení či zamítnutí, obnovení držení a expiraci. Diagram případů užití přidává schvalovatele a systémový časovač; stavový diagram a diagramy aktivit popisují nové přechody a uvolnění sedadel. Zdroje i obrázky jsou v [docs/diagrams/c02](docs/diagrams/c02/).
 
 Expiraci lze zpracovat příkazem Django:
 
@@ -94,4 +94,4 @@ Zůstávají Django ORM, SQLite pro vývoj, intervaly `[start,end)` a pravidlo j
 
 Pro C03 zůstávají témata ověření souběžných rezervací při vyšší zátěži, plánování expirace a napojení notifikací. Podrobnosti jsou v [architektonických rozhodnutích](docs/architecture-and-decisions/) a [evidenci vývoje](docs/evidence-and-evolution/).
 
-Textová specifikace v `docs/intent_and_change/` a `docs/operations/` ještě obsahuje starší hranice schvalování. Přehled v tomto README vychází z diagramů, implementace a dohodnutého pravidla **více než 10 sedadel nebo celý sál**.
+Textová specifikace v `docs/intent-and-change/` ještě obsahuje starší hranice schvalování. Přehled v tomto README vychází z diagramů, implementace a dohodnutého pravidla **více než 10 sedadel nebo celý sál**.

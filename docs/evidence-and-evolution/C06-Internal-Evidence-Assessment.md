@@ -24,8 +24,8 @@ Verified findings:
   schvalovanou rezervaci a `approval_deadline = now + 24 h`. OP-03
   neodkazuje na BR-08; obnova držení není plně zachycena ve specifikaci
   a diagramech. Guardy stavového diagramu se překrývají pro celý sál
-  s nejvýše 10 sedadly. Evidence: `operations/C02-Operations-and-Requirements.md`, `intent_and_change/C02-Domain-Rules-and-Baseline.md`,
-  `c02-diagrams/state.puml` a aktivity oproti
+  s nejvýše 10 sedadly. Evidence: `intent-and-change/C02-Operations-and-Requirements.md`, `intent-and-change/C02-Domain-Rules-and-Baseline.md`,
+  `diagrams/c02/state.puml` a aktivity oproti
   `reservation/services.py:_check_lead_time`, `_requires_approval`,
   `confirm_reservation`, `touch_reservation` a příslušným testům.
 - **F2 — C03, VERIFIED FINDING:** G2/H1 a C03 evidence stále uvádějí

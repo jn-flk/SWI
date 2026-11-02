@@ -164,9 +164,9 @@ claim_token=current)`; to je fencing proti pozdnímu workeru.
 9. Dispatcher podmíněně označí požadavek jako `SENT`, naplánuje opakování,
    nebo jej označí `FAILED`.
 
-Focused structural view: [c05-notification-outbox.puml](../c05-diagrams/c05-notification-outbox.puml).
+Focused structural view: [c05-notification-outbox.puml](../diagrams/c05/c05-notification-outbox.puml).
 
-![C05 — Doručování notifikací přes outbox](../c05-diagrams/c05-notification-outbox.png)
+![C05 — Doručování notifikací přes outbox](../diagrams/c05/c05-notification-outbox.png)
 
 ## C03 baseline -> skutečný návrh C05
 
