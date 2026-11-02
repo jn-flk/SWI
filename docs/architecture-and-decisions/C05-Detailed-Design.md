@@ -1,8 +1,6 @@
-# Architektura a rozhodnutí — C05
+# C05 — Detailed Design
 
-## C05 Detailed Design
-
-### Vybraná architektonická odpovědnost / softwarová jednotka
+## Vybraná architektonická odpovědnost / softwarová jednotka
 
 **Doručování notifikací přes outbox** je samostatná část uvnitř hranice
 notifikační služby. Zahrnuje atomický zápis požadavku na notifikaci,
@@ -20,7 +18,7 @@ podle zadané osnovy; obsah tabulek je vyplněn česky s diakritikou.
 | Relevantní pravidla | Outbox je součástí transakce rezervace; externí I/O nikdy nedrží databázovou transakci; doručení je typu at-least-once; příjemce deduplikuje podle stabilního ID. |
 | Hranice | `reservation.services` -> `notification.services` -> `NotificationRequest`; `notification.dispatcher` -> `NotificationSender` -> externí služba. |
 
-### Detailní odpovědnosti
+## Detailní odpovědnosti
 
 | Detailed responsibility | Why is it needed? |
 |---|---|
@@ -32,7 +30,7 @@ podle zadané osnovy; obsah tabulek je vyplněn česky s diakritikou.
 | Opakovat s omezenou prodlevou | Dočasné chyby se opakují, ale počet pokusů a prodleva mají horní mez. |
 | Poskytnout provozní ovládání | Management command poskytuje jednorázové i průběžné zpracování a počty výsledků. |
 
-### Návrhové prvky, vlastnictví a data
+## Návrhové prvky, vlastnictví a data
 
 | Responsibility  | Owner  | State/data | Why here? |
 |---|---|---|---|
@@ -44,7 +42,7 @@ podle zadané osnovy; obsah tabulek je vyplněn česky s diakritikou.
 | Lokální vývojový sink | `LoggingSender` | log event | Vývojový sender nepředstírá externí doručení. |
 | Provozní smyčka | management command | interval, batch size, watch | CLI řeší životní cyklus procesu, nikoli business stav zprávy. |
 
-### Rozhraní / kontrakt
+## Rozhraní / kontrakt
 
 ```text
 <<interface>> NotificationSender
@@ -73,7 +71,7 @@ HTTP varianta posílá `message.id` také jako `Idempotency-Key`. Kontrakt
 negarantuje doručení exactly-once; externí přijímač musí stejné ID
 deduplikovat.
 
-### Invarianty a stavový model
+## Invarianty a stavový model
 
 ```text
 PENDING --převzetí--> PENDING + claim_token + claimed_until
@@ -93,9 +91,9 @@ Platí:
 - `claim_token` a `claimed_until` jsou buď obě prázdné, nebo obě vyplněné;
 - po překročení lease může vzniknout duplicitní odeslání, proto je nutná idempotence přijímače.
 
-### Významné operace
+## Významné operace
 
-#### `record_notification(reservation, event)`
+### `record_notification(reservation, event)`
 
 | Item | Design |
 |---|---|
@@ -107,7 +105,7 @@ Platí:
 | Side effects | INSERT do outbox tabulky; při rollbacku záznam nezůstane. |
 | Failure behavior | `RuntimeError` mimo transakci, `ValueError` pro nepodporovaný event. |
 
-#### `dispatch_notifications(batch_size, sender=None)`
+### `dispatch_notifications(batch_size, sender=None)`
 
 | Item | Design |
 |---|---|
@@ -119,7 +117,7 @@ Platí:
 | Side effects | DB claim/update a volání externího senderu mimo transakci. |
 | Failure behavior | Chyba senderu se uloží a vede k opakování nebo `FAILED`; ztráta procesu se řeší expirací lease. |
 
-#### `HttpSender.send(message)`
+### `HttpSender.send(message)`
 
 | Item | Design |
 |---|---|
@@ -128,7 +126,7 @@ Platí:
 | Output | Žádná hodnota při 2xx. |
 | Failure behavior | Chybějící endpoint, síťová chyba nebo non-2xx odpověď vyvolá výjimku pro opakování dispatcherem. |
 
-### Algoritmus / rozhodovací logika
+## Algoritmus / rozhodovací logika
 
 ```text
 ověř nastavení dispatcheru
@@ -153,7 +151,7 @@ změnu na `(id, attempts)` a commitne lease před externím voláním. Pozdějš
 zápis úspěchu/chyby je podmíněn dvojicí `(id, status=PENDING,
 claim_token=current)`; to je fencing proti pozdnímu workeru.
 
-### Detailní sekvence
+## Detailní sekvence
 
 1. `ReservationService` změní stav rezervace uvnitř `transaction.atomic`.
 2. `_notify` zavolá `record_notification`.
@@ -170,7 +168,7 @@ Focused structural view: [c05-notification-outbox.puml](../c05-diagrams/c05-noti
 
 ![C05 — Doručování notifikací přes outbox](../c05-diagrams/c05-notification-outbox.png)
 
-### C03 baseline -> skutečný návrh C05
+## C03 baseline -> skutečný návrh C05
 
 | Předpoklad C03 | Návrhové rozhodnutí C05 |
 |---|---|
@@ -179,7 +177,7 @@ Focused structural view: [c05-notification-outbox.puml](../c05-diagrams/c05-noti
 | Notifikační integrace je post-commit vedlejší účinek | Integrace je rozdělena na transakční zápis a asynchronní doručení. |
 | Jeden lokální adaptér | `NotificationSender` podporuje loggingový i HTTP adaptér. |
 
-### Rozhodnutí DD záměrně ponechaná kódu
+## Rozhodnutí DD záměrně ponechaná kódu
 
 - deklarace polí Django modelu, syntaxe migrací a boilerplate administrace;
 - triviální logovací příkaz `LoggingSender`;

@@ -1,8 +1,6 @@
-# Architektura a rozhodnutí — C03
+# C03 — Současná realizace Confirm Reservation
 
-## C03 - současná realizace Confirm Reservation
-
-### Sledovaný scénář
+## Sledovaný scénář
 
 | Položka | Hodnota |
 |---|---|
@@ -13,7 +11,7 @@
 
 Doklady níže uvádějí soubor a funkci/model. [Testy](../../src/rezervace_divadlo/reservation/tests.py) byly přečteny, nově se nespouštěly.
 
-### Hlavní průchod scénáře → kód
+## Hlavní průchod scénáře → kód
 
 | Krok scénáře z C02 | Realizace v kódu | Doklad |
 |---|---|---|
@@ -23,7 +21,7 @@ Doklady níže uvádějí soubor a funkci/model. [Testy](../../src/rezervace_div
 | Změnit a uložit stav. | `CONFIRMED` nebo `PENDING_APPROVAL`; zrušit držení, případně nastavit deadline schválení. Blokování zůstává, kolize se znovu nekontroluje. | [services.py][services]: `_set_status`, `confirm_reservation` |
 | Vrátit výsledek. | Vrátit `Reservation`; u schvalovací větve ve stejné transakci zapsat `NotificationRequest`. | [services.py][services]: `confirm_reservation`, `_notify`; [notification services.py][notification-services]: `record_notification` |
 
-### Důležitá chybová větev
+## Důležitá chybová větev
 
 | Co říká v0.2 | Kde se podmínka zjistí | Kde se rozhodne výsledek | Co dostane volající |
 |---|---|---|---|
@@ -34,7 +32,7 @@ Doklady níže uvádějí soubor a funkci/model. [Testy](../../src/rezervace_div
 | Hranice schvalování je sjednocena v aktuální specifikaci a implementaci. | Schválení nad 10 sedadel nebo pro celý sál. | [services.py][services]: `_requires_approval`; [settings.py][settings]: limit 10; test `test_ten_seats_confirm_directly_but_eleven_require_approval` |
 | BR-08 používá politiku minimálního předstihu. | Alespoň 24 h před začátkem při Create i Confirm. | [services.py][services]: `_check_lead_time`; [settings.py][settings]: `RESERVATION_APPROVAL_HOURS` |
 
-### Hlavní části implementace
+## Hlavní části implementace
 
 | Část implementace | Typ / obsah | Role v tomto scénáři | Doklad |
 |---|---|---|---|
@@ -43,7 +41,7 @@ Doklady níže uvádějí soubor a funkci/model. [Testy](../../src/rezervace_div
 | Konfigurace | Modul `settings.py` | Limity politiky a připojení DB. | [settings.py][settings] |
 | Notifikace | Aplikace `notification` | Transakční outbox a asynchronní dispatcher; výchozí sender loguje lokálně. | [notification services.py][notification-services], [dispatcher.py][dispatcher] |
 
-### Stav, změna stavu a pravidlo
+## Stav, změna stavu a pravidlo
 
 | Otázka | Odpověď | Doklad |
 |---|---|---|
@@ -60,7 +58,7 @@ Pravidlo BR-04: potvrdit pouze platný `DRAFT`.
 
 BR-02 chrání už Create a DB constraint `unique_active_performance_seat`; Confirm blokování zachovává.
 
-### Relevantní závislosti
+## Relevantní závislosti
 
 | Závislost | Kde se napojuje | Která část zná technické API | Doklad |
 |---|---|---|---|
@@ -68,14 +66,14 @@ BR-02 chrání už Create a DB constraint `unique_active_performance_seat`; Conf
 | Notification Service — outbox a dispatcher | `_notify` zapíše outbox ve stejné transakci při žádosti o schválení nebo expiraci; samostatný dispatcher doručuje později. | `notification.services` validuje a snapshotuje událost; `notification.adapters` obsahuje logging/HTTP sendery. | [notification services.py][notification-services]; [dispatcher.py][dispatcher] |
 | Django auth | Kontrola předaného uživatele a oprávnění. | `services.py`: `is_authenticated`, `is_active`, `has_perm`. | [services.py][services]: `_authorize_owner` |
 
-### AS-IS strukturální diagram
+## AS-IS strukturální diagram
 
 Diagram je ve složce [c03-diagrams/](../c03-diagrams/):
 [AS-IS — Confirm Reservation (PlantUML)](../c03-diagrams/as-is-confirm-reservation.puml).
 
 Obsah modulů viz tabulka hlavních částí. Auth a logging jsou frameworkové závislosti; notifikace se při přímém potvrzení nevolá.
 
-### Otázka pro další architektonický návrh
+## Otázka pro další architektonický návrh
 
 | Item | Content |
 |---|---|
@@ -83,12 +81,12 @@ Obsah modulů viz tabulka hlavních částí. Auth a logging jsou frameworkové 
 | Doklad | [settings.py][settings]: `IMMEDIATE`, timeout 20 s; [services.py][services]: chyba `busy` při zamčené DB. Test `test_confirm_cannot_be_repeated` ověřuje jen sekvenční opakování. |
 | Proč je důležitá | SQLite serializuje zápisy; souběžný experiment musí ověřit správnost přechodů, čekání a četnost `busy`. |
 
-## C03 — Návrh architektury (B–F)
+# C03 — Návrh architektury (B–F)
 
 Sledovaný scénář zůstává OP-03 Confirm Reservation, konkrétně větev
 `DRAFT → PENDING_APPROVAL` (více než 10 sedadel) s pozdějším OP-05.
 
-### B. Architektonické drivery
+## B. Architektonické drivery
 
 | # | Podklad / zdroj | Proč ovlivňuje architekturu | Otázka, kterou musí architektura vyřešit |
 |---|---|---|---|
@@ -100,7 +98,7 @@ Sledovaný scénář zůstává OP-03 Confirm Reservation, konkrétně větev
 Mechanismy (transakce, `select_for_update`, outbox, worker) jsou až kandidátní
 řešení v E1, nejsou součástí driverů.
 
-### C1. Doménový třídní model
+## C1. Doménový třídní model
 
 Diagram: [domain-model.puml](../c03-diagrams/domain-model.puml).
 
@@ -121,7 +119,7 @@ notifikační adaptér v modelu nejsou. Model odpovídá C02 (více sedadel na
 rezervaci, stavy ze statechartu); nový je jen explicitní pojem `ApprovalPolicy`,
 který v kódu existuje jako `_requires_approval` + konstanty v `settings.py`.
 
-### C2. Odpovědnosti systému
+## C2. Odpovědnosti systému
 
 | # | Zdroj | Odpovědnost | Co musí rozhodovat / vlastnit | Jeden jasný vlastník? | Důvod |
 |---|---|---|---|---|---|
@@ -145,7 +143,7 @@ který v kódu existuje jako `_requires_approval` + konstanty v `settings.py`.
 | R7 | R1 – záznam musí vzniknout ve stejné transakci jako změna stavu | R8 – jiná technologie, jiný důvod změny, externí failure |
 | R8 | – | R1/R7 – pád Notification Service nesmí rozbít ani držet transakci lifecycle |
 
-### D. Hlavní rozhodovací otázka
+## D. Hlavní rozhodovací otázka
 
 ```text
 Rozhodovací otázka:
@@ -159,7 +157,7 @@ Vychází z D3 (a dotýká se D1, D2). Má dopad na ownership (R7/R8), interakci
 odesílá). D1 (souběh) je v Části A už řešen DB transakcí a constraintem;
 bude ověřen v L1, ale nemá dvě rovnocenné reálné alternativy pro náš stack.
 
-### E1. Alternativy
+## E1. Alternativy
 
 **Alternativa A — synchronní best-effort po commitu (zpřesnění AS-IS)**
 
@@ -199,7 +197,7 @@ bude ověřen v L1, ale nemá dvě rovnocenné reálné alternativy pro náš st
 - Doručení a retry (R8) vlastní Notification Dispatch v background procesu.
 - Confirm na Notification Service vůbec nečeká.
 
-### E2. Porovnání vůči driverům
+## E2. Porovnání vůči driverům
 
 | Driver / kritérium | Alternativa A | Alternativa B |
 |---|---|---|
@@ -209,7 +207,7 @@ bude ověřen v L1, ale nemá dvě rovnocenné reálné alternativy pro náš st
 | D4 – ownership / změna | Notifikační logika je volána přímo ze služeb; R7 i R8 v praxi leží v Reservation Management. Změna vendor API nebo retry politiky zasáhne request cestu. | R7 = Reservation Management, R8 = Notification Dispatch, vendor API jen v Notification Integration. Změna doručování nezasahuje do lifecycle kódu. |
 | Provozní složitost | Nejjednodušší: bez nové tabulky, bez dalšího procesu. | Nová tabulka + migrace, samostatný příkaz `dispatch_notifications --watch` a monitoring `FAILED`/stáří `PENDING`. Dispatcher je samostatný worker, ale ne nový aplikační deployable. |
 
-### E3. Průchod scénářem
+## E3. Průchod scénářem
 
 Scénář: OP-03 Confirm rezervace 12 sedadel (> 10) → `PENDING_APPROVAL`.
 Komplikace: Notification Service je v okamžiku potvrzení nedostupná (timeout),
@@ -228,7 +226,7 @@ za 10 minut se obnoví; navíc proces aplikace spadne těsně po commitu.
 Obě alternativy realizují požadované chování stavů; liší se v tom, zda
 selhání notifikace může tiše zneplatnit D2 (schvalovatel o žádosti neví).
 
-### F. ADR-01 — Integrace s Notification Service a význam jejího selhání
+## F. ADR-01 — Integrace s Notification Service a význam jejího selhání
 
 ```text
 ## ADR-01 — Kde izolovat integraci s Notification Service a co znamená její selhání pro Confirm Reservation?

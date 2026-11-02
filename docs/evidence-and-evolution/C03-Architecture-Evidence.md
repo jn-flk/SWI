@@ -1,6 +1,4 @@
-# Evidence C03
-
-## C03 — Architecture Evidence
+# C03 — Architecture Evidence
 
 Baseline: v0.2
 Part A: OP-03 Confirm Reservation, včetně přímého potvrzení a schvalovací větve.

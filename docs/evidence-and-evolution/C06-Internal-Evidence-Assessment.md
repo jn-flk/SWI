@@ -1,6 +1,4 @@
-# Evidence C06
-
-## C06 Internal Evidence Assessment
+# C06 — Internal Evidence Assessment
 
 Assessed baseline:
 

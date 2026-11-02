@@ -1,4 +1,4 @@
-# Operace a požadavky
+# C02 — Operace a požadavky
 
 Tato baseline používá stavy `DRAFT`, `PENDING_APPROVAL`, `CONFIRMED`,
 `REJECTED`, `CANCELLED` a `EXPIRED`. Význam stavů a společná pravidla jsou

@@ -1,4 +1,4 @@
-# Architektura a rozhodnutí — C01
+# C01 — Technologický stack a klíčová rozhodnutí
 
 ## Technologický stack
 

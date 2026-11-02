@@ -1,4 +1,4 @@
-# Architektura a rozhodnutí — C02
+# C02 — Doménový model a známá omezení
 
 ## Doménový model
 

@@ -1,4 +1,4 @@
-# Evidence C02: specifikace → běžící aplikace
+# C02 — Evidence: specifikace → běžící aplikace
 
 ## Přijatá baseline:
 

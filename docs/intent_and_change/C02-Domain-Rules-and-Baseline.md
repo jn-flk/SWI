@@ -1,4 +1,4 @@
-# C02 - Doménová pravidla a baseline
+# C02 — Doménová pravidla a baseline
 
 Změna C02 rozšiřuje rezervaci o výběr více sedadel, schvalování hromadných
 rezervací a automatické vypršení neaktivních nebo dlouho čekajících stavů.

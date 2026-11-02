@@ -1,4 +1,4 @@
-# Evidence C07–C08
+# C07 — Vypořádání nálezů, technické argumenty a risk register
 
 ## Následné vypořádání nálezů po assessmentu C05
 
