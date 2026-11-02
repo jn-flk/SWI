@@ -24,11 +24,11 @@ BR-03 — Cancellation policy
 a `EXPIRED` zrušit nelze.
 
 BR-04 — Confirmation policy
-OP-03 je dokončení rezervace uživatelem. U rezervace s nejvýše deseti sedadly
+OP-03 (Confirm Reservation) je dokončení rezervace uživatelem. U rezervace s nejvýše deseti sedadly
 vede k `CONFIRMED`; u hromadné rezervace nebo rezervace celého sálu vede k
 `PENDING_APPROVAL`. Přechod je atomický s kontrolou platnosti držení.
 Kolize se kontroluje při vytvoření `DRAFT`; sedadla zůstávají blokována
-také v `PENDING_APPROVAL`. OP-03 ani OP-05 proto dostupnost nebo kolizi
+také v `PENDING_APPROVAL`. OP-03 (Confirm Reservation) ani OP-05 (Approve Reservation) proto dostupnost nebo kolizi
 znovu nekontrolují a při potvrzení či schválení zachovávají existující
 blokování podle BR-02.
 

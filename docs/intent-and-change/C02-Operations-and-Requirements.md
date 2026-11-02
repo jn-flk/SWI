@@ -35,7 +35,7 @@ Stav po úspěšném provedení:
 
 Změna stavu: `[none] -> DRAFT`.
 
-Odkaz na pravidla / invarianty: BR-01, BR-02, BR-05, BR-07, BR-08.
+Odkaz na pravidla / invarianty: BR-01 (Interval semantics), BR-02 (Exclusive Resource invariant), BR-05 (Availability policy), BR-07 (Hold and inactivity policy), BR-08 (Bulk approval lead time).
 
 Hlavní úspěšný scénář:
 1. Uživatel zobrazí sál a vybere jedno nebo více volných sedadel.
@@ -82,7 +82,7 @@ Chování:
   zpětně.
 
 Odkaz na implementaci: `reservation.services.touch_reservation`; pravidla
-BR-03 a BR-07.
+BR-03 (Cancellation policy) a BR-07 (Hold and inactivity policy).
 
 ## OP-02 — Check Availability
 
@@ -102,7 +102,7 @@ sedadla; jinak vrátí `AVAILABLE`.
 
 Předpoklady:
 - Resource existuje;
-- interval splňuje BR-01.
+- interval splňuje BR-01 (Interval semantics).
 
 Stav po úspěšném provedení:
 - výsledek dostupnosti je vrácen;
@@ -110,7 +110,7 @@ Stav po úspěšném provedení:
 
 Změna stavu: žádná.
 
-Odkaz na pravidla / invarianty: BR-01, BR-02, BR-05.
+Odkaz na pravidla / invarianty: BR-01 (Interval semantics), BR-02 (Exclusive Resource invariant), BR-05 (Availability policy).
 
 Hlavní úspěšný scénář:
 1. Systém ověří Resource a interval.
@@ -144,7 +144,7 @@ sedadel či celý sál. V obou případech musí být držení platné a všechn
 sedadla aktivní, musí platit 15minutový cutoff a u schvalovací větve také
 minimální předstih 24 hodin. Schvalovací větev nastaví
 `approval_deadline = now + 24 h`. Sedadla jsou blokována již od vytvoření `DRAFT` podle
-BR-02; kontrola kolize se při potvrzení neopakuje.
+BR-02 (Exclusive Resource invariant); kontrola kolize se při potvrzení neopakuje.
 
 REQ-04: Při souběžných pokusech o potvrzení stejné rezervace uspěje pouze
 jeden přechod z `DRAFT`.
@@ -157,11 +157,11 @@ Předpoklady:
 Stav po úspěšném provedení:
 - podle větve je rezervace `CONFIRMED` nebo `PENDING_APPROVAL` a všechna
   její sedadla jsou blokována;
-- BR-02 zůstává splněno.
+- BR-02 (Exclusive Resource invariant) zůstává splněno.
 
 Změna stavu: `DRAFT -> CONFIRMED` nebo `DRAFT -> PENDING_APPROVAL`.
 
-Odkaz na pravidla / invarianty: BR-01, BR-02, BR-03, BR-04, BR-05.
+Odkaz na pravidla / invarianty: BR-01 (Interval semantics), BR-02 (Exclusive Resource invariant), BR-03 (Cancellation policy), BR-04 (Confirmation policy), BR-05 (Availability policy).
 
 Hlavní úspěšný scénář:
 1. Systém ověří oprávnění, existenci a stav `DRAFT`.
@@ -169,7 +169,7 @@ Hlavní úspěšný scénář:
    a požadavek odmítne.
 3. Ověří aktivní sedadla, cutoff 15 minut a u schvalovací větve předstih
    24 hodin. Ověří počet sedadel a případnou rezervaci celého sálu.
-   Dostupnost ani kolizi znovu nekontroluje podle BR-04.
+   Dostupnost ani kolizi znovu nekontroluje podle BR-04 (Confirmation policy).
 4. Atomicky nastaví `CONFIRMED` nebo `PENDING_APPROVAL`; ve druhé větvi
    nastaví `approval_deadline = now + 24 h` a zapíše outbox událost.
 5. Systém vrátí aktuální stav.
@@ -204,7 +204,7 @@ Pozorovatelný požadavek:
 REQ-05: Systém dovolí zrušit `DRAFT`, `PENDING_APPROVAL` nebo `CONFIRMED`,
 pokud `now < start`. Zrušený záznam zůstane uložen jako `CANCELLED`.
 Opakované zrušení již `CANCELLED` rezervace oprávněným aktérem vrátí
-idempotentní úspěch bez změny podle BR-03.
+idempotentní úspěch bez změny podle BR-03 (Cancellation policy).
 
 Předpoklady:
 - rezervace existuje;
@@ -220,12 +220,12 @@ Stav po úspěšném provedení:
 Změna stavu: `DRAFT|PENDING_APPROVAL|CONFIRMED -> CANCELLED`;
 u již `CANCELLED` rezervace žádná změna.
 
-Odkaz na pravidla / invarianty: BR-01, BR-02, BR-03, BR-05.
+Odkaz na pravidla / invarianty: BR-01 (Interval semantics), BR-02 (Exclusive Resource invariant), BR-03 (Cancellation policy), BR-05 (Availability policy).
 
 Hlavní úspěšný scénář:
 1. Systém ověří existenci rezervace a oprávnění uživatele.
 2. Je-li stav již `CANCELLED`, vrátí idempotentní úspěch bez změny.
-3. Jinak ověří povolený zdrojový stav a aktuální čas podle BR-03.
+3. Jinak ověří povolený zdrojový stav a aktuální čas podle BR-03 (Cancellation policy).
 4. Atomicky nastaví `CANCELLED`.
 5. Vrátí stav; všechna sedadla rezervace se okamžitě uvolní.
 
@@ -262,7 +262,7 @@ REQ-06: Systém dovolí schvalovateli atomicky změnit `PENDING_APPROVAL` na
 
 REQ-07: Schválení je možné pouze před uplynutím lhůty pro schválení.
 Sedadla zůstávají blokována od vytvoření `DRAFT` i během `PENDING_APPROVAL`
-podle BR-02; schválení zachovává toto blokování bez nové kontroly kolize.
+podle BR-02 (Exclusive Resource invariant); schválení zachovává toto blokování bez nové kontroly kolize.
 
 Předpoklady:
 - rezervace existuje a je ve stavu `PENDING_APPROVAL`;
@@ -277,13 +277,13 @@ Stav po úspěšném provedení:
 
 Změna stavu: `PENDING_APPROVAL -> CONFIRMED|REJECTED`.
 
-Odkaz na pravidla / invarianty: BR-02, BR-03, BR-05, BR-06, BR-08.
+Odkaz na pravidla / invarianty: BR-02 (Exclusive Resource invariant), BR-03 (Cancellation policy), BR-05 (Availability policy), BR-06 (Concurrent outcome), BR-08 (Bulk approval lead time).
 
 Hlavní úspěšný scénář:
 1. Systém ověří oprávnění schvalovatele, existenci a stav
 	`PENDING_APPROVAL`.
 2. Ověří lhůtu pro schválení a začátek představení. Dostupnost ani kolizi
-	sedadel znovu nekontroluje podle BR-04.
+	sedadel znovu nekontroluje podle BR-04 (Confirmation policy).
 3. Schvalovatel zvolí schválení nebo zamítnutí.
 4. Systém atomicky nastaví `CONFIRMED` nebo `REJECTED`.
 5. Systém vrátí aktuální stav a výsledek rozhodnutí.
