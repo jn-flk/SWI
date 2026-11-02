@@ -2,7 +2,7 @@
 
 Tato baseline používá stavy `DRAFT`, `PENDING_APPROVAL`, `CONFIRMED`,
 `REJECTED`, `CANCELLED` a `EXPIRED`. Význam stavů a společná pravidla jsou
-definovány jednou v `intent-and-change/C02-Domain-Rules-and-Baseline.md`; zde se na ně pouze odkazuje.
+definovány jednou v `intent-and-change/C02-States-and-Transitions.md` a `intent-and-change/C02-Domain-Rules.md`; zde se na ně pouze odkazuje.
 
 ## OP-01 — Create Reservation
 

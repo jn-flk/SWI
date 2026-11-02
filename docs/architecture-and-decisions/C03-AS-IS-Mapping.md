@@ -6,7 +6,7 @@
 |---|---|
 | Operace | OP-03 — Confirm Reservation |
 | Požadavky | REQ-03, REQ-04 — [intent-and-change/C02-Operations-and-Requirements.md](../intent-and-change/C02-Operations-and-Requirements.md) |
-| Pravidla | BR-02, BR-04, BR-06, BR-07, BR-08 — [intent-and-change/C02-Domain-Rules-and-Baseline.md](../intent-and-change/C02-Domain-Rules-and-Baseline.md) |
+| Pravidla | BR-02, BR-04, BR-06, BR-07, BR-08 — [intent-and-change/C02-Domain-Rules.md](../intent-and-change/C02-Domain-Rules.md) |
 | Baseline | v0.2 — [evidence-and-evolution/C02-Specification-to-Running-App.md](../evidence-and-evolution/C02-Specification-to-Running-App.md) |
 
 Doklady níže uvádějí soubor a funkci/model. [Testy](../../src/rezervace_divadlo/reservation/tests.py) byly přečteny, nově se nespouštěly.

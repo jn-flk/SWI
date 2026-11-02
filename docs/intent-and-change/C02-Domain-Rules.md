@@ -1,49 +1,9 @@
-# C02 — Doménová pravidla a baseline
+# C02 — Doménová pravidla
 
 Změna C02 rozšiřuje rezervaci o výběr více sedadel, schvalování hromadných
 rezervací a automatické vypršení neaktivních nebo dlouho čekajících stavů.
 Hranice pro hromadnou rezervaci je více než deset sedadel; rezervace celého sálu
 vyžaduje schválení vždy. Jedna `Reservation` může obsahovat více sedadel.
-
-## Stavy rezervace
-
-- `DRAFT`: uživatel vybral jedno nebo více sedadel a pokračoval k rezervaci.
-    Sedadla jsou po omezenou dobu dočasně držena pro daného návštěvníka.
-    Stav má `hold_until`.
-- `PENDING_APPROVAL`: hromadná rezervace byla odeslána ke schválení. Stav je
-    nefinální a všechna její sedadla zůstávají blokována.
-- `CONFIRMED`: běžná rezervace byla přijata nebo hromadná rezervace schválena.
-    Všechna sedadla jsou blokována pro dané představení.
-- `REJECTED`: hromadná rezervace byla zamítnuta schvalovatelem. Stav je
-    terminální a sedadla již nejsou blokována.
-- `CANCELLED`: existující rezervace nebo držení bylo aktivně zrušeno
-    oprávněným aktérem. Stav je terminální a sedadla již nejsou blokována.
-- `EXPIRED`: držení nebo čekání na schválení vypršelo bez aktivního
-    rozhodnutí. Stav je terminální a sedadla již nejsou blokována.
-
-## Přechody
-
-- `[none] -> DRAFT`: vznikne nová rezervace pro vybraná sedadla a systém je
-    po omezenou dobu drží pro daného návštěvníka.
-- `DRAFT -> CONFIRMED`: běžná rezervace s nejvýše deseti sedadly je po
-    dokončení uživatelem přijata a sedadla jsou trvale blokována.
-- `DRAFT -> PENDING_APPROVAL`: hromadná rezervace s více než deseti sedadly
-    nebo rezervace celého sálu je odeslána ke schválení. Sedadla zůstávají
-    blokována do rozhodnutí nebo vypršení.
-- `DRAFT -> CANCELLED`: návštěvník nebo jiný oprávněný aktér aktivně zruší
-    držení před jeho potvrzením. Sedadla se uvolní.
-- `DRAFT -> EXPIRED`: držení automaticky vyprší, například po ukončení
-    neaktivní rezervační relace. Sedadla se uvolní bez aktivního zrušení.
-- `PENDING_APPROVAL -> CONFIRMED`: schvalovatel hromadnou rezervaci přijme.
-    Sedadla zůstávají trvale blokována.
-- `PENDING_APPROVAL -> REJECTED`: schvalovatel hromadnou rezervaci zamítne.
-    Sedadla se uvolní a žádost je terminálně ukončena.
-- `PENDING_APPROVAL -> EXPIRED`: žádost nebyla schválena před uplynutím
-    stanovené lhůty. Sedadla se uvolní automaticky.
-- `PENDING_APPROVAL -> CANCELLED`: návštěvník nebo jiný oprávněný aktér
-    čekající žádost aktivně zruší před rozhodnutím. Sedadla se uvolní.
-- `CONFIRMED -> CANCELLED`: návštěvník nebo jiný oprávněný aktér aktivně
-    zruší potvrzenou rezervaci před začátkem představení. Sedadla se uvolní.
 
 ## Společná pravidla
 
@@ -98,18 +58,3 @@ Hromadná rezervace musí být vytvořena s dostatečným předstihem před zač
 představení, aby zůstala lhůta pro manuální schválení. Konkrétní minimální
 předstih je 24 hodin (`RESERVATION_APPROVAL_HOURS`); po jeho překročení systém
 hromadnou žádost odmítne vytvořit nebo přijmout ke schválení.
-
-## Kontrola přijetí požadavků
-
-Požadavky jsou ověřitelné přes stav rezervace, počet jejích sedadel,
-`hold_until`, lhůtu pro schválení, dostupnost sedadel a atomické chování při
-souběhu. Ověřit je nutné také zpožděné schválení, zamítnutí, expiraci a
-uvolnění všech sedadel skupinové rezervace.
-
-## Co se nezměnilo
-
-Intervalová sémantika `[start,end)`, pravidlo jediné aktivní rezervace pro
-sedadlo a představení, možnost zrušení před začátkem představení, použití
-Django ORM, SQLite pro vývoj a externí hranice Notification Service zůstávají
-beze změny. C02 pouze rozšiřuje stavy, aktéry a časový životní cyklus
-rezervace.
