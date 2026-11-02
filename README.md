@@ -17,7 +17,7 @@ Co konkrétně rezervujeme?
 - Společné pravidlo – stejné sedadlo nesmí být současně blokováno více aktivními rezervacemi pro stejné představení
 - Hranice systému – služba oznámení (Notification Service)
 
-Úplný popis domény je v [dokumentu o záměru a změnách](docs/intent_and_change.md).
+Úplný popis domény je v [dokumentu o záměru a změnách](docs/intent_and_change/).
 
 ## Instalace a spuštění
 
@@ -92,6 +92,6 @@ neprokazují chování při skutečném souběhu více databázových spojení.
 
 Zůstávají Django ORM, SQLite pro vývoj, intervaly `[start,end)` a pravidlo jediné aktivní rezervace sedadla pro dané představení. Datový model přidává vazbu `ReservationSeat`, stav, vlastníka a časové limity. Transakce a databázová omezení chrání aktivní alokace; změny schématu obsahuje migrace `0002`.
 
-Pro C03 zůstávají témata ověření souběžných rezervací při vyšší zátěži, plánování expirace a napojení notifikací. Podrobnosti jsou v [architektonických rozhodnutích](docs/architecture-and-decisions.md) a [evidenci vývoje](docs/evidence-and-evolution.md).
+Pro C03 zůstávají témata ověření souběžných rezervací při vyšší zátěži, plánování expirace a napojení notifikací. Podrobnosti jsou v [architektonických rozhodnutích](docs/architecture-and-decisions/) a [evidenci vývoje](docs/evidence-and-evolution/).
 
-Textová specifikace v `intent_and_change.md` a `operations.md` ještě obsahuje starší hranice schvalování. Přehled v tomto README vychází z diagramů, implementace a dohodnutého pravidla **více než 10 sedadel nebo celý sál**.
+Textová specifikace v `docs/intent_and_change/` a `docs/operations/` ještě obsahuje starší hranice schvalování. Přehled v tomto README vychází z diagramů, implementace a dohodnutého pravidla **více než 10 sedadel nebo celý sál**.
