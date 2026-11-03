@@ -1,29 +1,31 @@
-# C02 — Doménová pravidla
+# C02 — Domain rules
+
+← [Navigator](../NAVIGATOR.md) · [Traceability](../TRACEABILITY.md) · Related: [States](../intent-and-change/C02-States-and-Transitions.md) · [Operations](../intent-and-change/C02-Operations-and-Requirements.md) · [Domain model](../architecture-and-decisions/C02-Domain-Model-and-Limitations.md) · [C02 evidence](../evidence-and-evolution/C02-Specification-to-Running-App.md)
 
 Změna C02 rozšiřuje rezervaci o výběr více sedadel, schvalování hromadných
 rezervací a automatické vypršení neaktivních nebo dlouho čekajících stavů.
 Hranice pro hromadnou rezervaci je více než deset sedadel; rezervace celého sálu
 vyžaduje schválení vždy. Jedna `Reservation` může obsahovat více sedadel.
 
-## Společná pravidla
+## Shared rules
 
-BR-01 — Interval semantics
+### BR-01 — Interval semantics
 Rezervační intervaly používají polouzavřenou sémantiku `[start,end)`. Dotyk
 na hranici, například `[09:00,10:00)` a `[10:00,11:00)`, není překryv.
 
-BR-02 — Exclusive Resource invariant
+### BR-02 — Exclusive Resource invariant
 Pro jedno představení nesmí být stejné sedadlo současně součástí více
 aktivních rezervací. Aktivní `DRAFT`, `PENDING_APPROVAL` i `CONFIRMED` proto
 blokují stejné sedadlo.
 
-BR-03 — Cancellation policy
+### BR-03 — Cancellation policy
 `DRAFT`, `PENDING_APPROVAL` a `CONFIRMED` lze aktivně zrušit pouze při
 `now < start`. Změna je atomická a záznam se nemaže. Opakované zrušení již
 `CANCELLED` rezervace oprávněným aktérem vrací idempotentní úspěch se stavem
 `CANCELLED`, bez další změny a bez ohledu na čas začátku. Stavy `REJECTED`
 a `EXPIRED` zrušit nelze.
 
-BR-04 — Confirmation policy
+### BR-04 — Confirmation policy
 OP-03 (Confirm Reservation) je dokončení rezervace uživatelem. U rezervace s nejvýše deseti sedadly
 vede k `CONFIRMED`; u hromadné rezervace nebo rezervace celého sálu vede k
 `PENDING_APPROVAL`. Přechod je atomický s kontrolou platnosti držení.
@@ -32,12 +34,12 @@ také v `PENDING_APPROVAL`. OP-03 (Confirm Reservation) ani OP-05 (Approve Reser
 znovu nekontrolují a při potvrzení či schválení zachovávají existující
 blokování podle BR-02.
 
-BR-05 — Availability policy
+### BR-05 — Availability policy
 Dostupnost blokují aktivní `DRAFT`, `PENDING_APPROVAL` a `CONFIRMED`
 rezervace. `CANCELLED`, `REJECTED` a `EXPIRED` se do výsledku dostupnosti
 nezapočítávají.
 
-BR-06 — Concurrent outcome
+### BR-06 — Concurrent outcome
 Vytvoření držení musí atomicky ověřit dostupnost podle BR-02 a zablokovat
 vybraná sedadla. Při závodu dvou návštěvníků o stejné sedadlo uspěje pouze
 první platná alokace. Dokončení rezervace, schválení, zrušení a expirace
@@ -45,7 +47,7 @@ atomicky ověřují zdrojový stav a zachovávají nebo uvolňují existující
 blokování; novou kontrolu kolize neprovádějí. Při závodu schválení, zrušení
 a expirace uspěje pouze první platný přechod.
 
-BR-07 — Hold and inactivity policy
+### BR-07 — Hold and inactivity policy
 Uživatel nejdříve zobrazí sál a vybere jedno nebo více volných sedadel.
 Tlačítko pro pokračování s rezervací se zobrazí až po výběru alespoň jednoho
 sedadla. Po jeho stisku systém atomicky vytvoří jednu `Reservation` pro
@@ -53,7 +55,7 @@ všechna vybraná sedadla ve stavu `DRAFT` s `hold_until`. Neaktivní
 rezervační relace se po pěti minutách ukončí a aktivní držení přejde do
 `EXPIRED`; serverový `hold_until` je autoritativní.
 
-BR-08 — Bulk approval lead time
+### BR-08 — Bulk approval lead time
 Hromadná rezervace musí být vytvořena s dostatečným předstihem před začátkem
 představení, aby zůstala lhůta pro manuální schválení. Konkrétní minimální
 předstih je 24 hodin (`RESERVATION_APPROVAL_HOURS`); po jeho překročení systém

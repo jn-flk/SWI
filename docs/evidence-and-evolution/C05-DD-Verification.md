@@ -1,6 +1,11 @@
 # C05 — DD Verification Evidence
 
-## Testy odvozené z detailního návrhu
+← [Navigator](../NAVIGATOR.md) · [Traceability](../TRACEABILITY.md) · Related: [Detailed design](../architecture-and-decisions/C05-Detailed-Design.md)
+
+DD znamená detailní návrh, viz [C05-Detailed-Design.md](../architecture-and-decisions/C05-Detailed-Design.md),
+kde jsou vysvětleny i pojmy jako claim, lease a fencing.
+
+## Tests derived from the detailed design
 
 | DD element / decision | What must hold? | Test level | Test case |
 |---|---|---|---|
@@ -22,7 +27,7 @@
 | Kontrakt HTTP adaptéru | HTTP sender odešle JSON, timeout a idempotency klíč; chyby se propagují. | jednotkový | `test_http_posts_snapshot_with_idempotency_key_and_timeout`, `test_http_transport_and_server_errors_propagate_for_retry` |
 | Provozní rozhraní | Jednorázový příkaz zpracuje dávku a vypíše počty; neplatné volby selžou. | komponentový | `test_one_shot_command_dispatches_and_prints_counts`, `test_invalid_command_options_are_rejected` |
 
-## Vybrané úrovně testů
+## Selected test levels
 
 **`test_outbox_record_and_status_change_share_one_transaction`**
 
@@ -64,7 +69,7 @@ timeout a idempotency hlavičku bez kontaktování externí služby.
 je návrhové rozhodnutí, které test ověřuje. Test simuluje náhradní claim mezi
 odesláním a potvrzením a ověří, že zastaralý worker nezmění žádný stav.
 
-## Ověření citlivosti testů na porušení návrhu
+## Test sensitivity to design violations
 
 Nové testy byly ověřeny dočasnou úpravou kódu (po ověření vráceno):
 
@@ -74,7 +79,7 @@ Nové testy byly ověřeny dočasnou úpravou kódu (po ověření vráceno):
 | Všechny eventy posílány audience `owner` | `test_snapshot_and_audience_follow_event`, `test_decision_and_expiry_enqueue_owner_notifications`, `test_committed_transitions_are_delivered_through_sender` |
 | `_notify` vrácen na C03 styl `transaction.on_commit(...)` | `test_outbox_record_and_status_change_share_one_transaction`, `test_confirmation_enqueues_notification_without_inline_delivery`, `test_decision_and_expiry_enqueue_owner_notifications`, `test_committed_transitions_are_delivered_through_sender` |
 
-## Spuštěné jednotkové a komponentové testy
+## Executed unit and component tests
 
 Příkaz spuštěný z adresáře `src\rezervace_divadlo`:
 
@@ -110,7 +115,7 @@ vliv a projekt cílí na Django 6.
 Sada nesimuluje oddělené procesy operačního systému ani zamykání řádků
 v produkčním stylu mezi více databázovými spojeními.
 
-## Nesoulad návrhu a implementace
+## Design ↔ implementation mismatch
 
 | DD decision | Implemented? | Evidence | Action |
 |---|---|---|---|
@@ -127,7 +132,7 @@ v produkčním stylu mezi více databázovými spojeními.
 | Oddělit skutečný a neznámý externí výsledek | ČÁSTEČNĚ | Lokální stavy jsou pouze `SENT`/`FAILED`; pád po odeslání může být nejednoznačný | zdokumentovat riziko |
 | Prokázat paralelní claimy na produkční databázi | ČÁSTEČNĚ | Pouze sekvenční testy; SQLite se liší od databází se zamykáním řádků | doplnit později |
 
-## Vyřešení
+## Resolution
 
 Původní popis C03 s `on_commit` a pouze logovacím adaptérem je historická
 baseline. C05 jej nahrazuje transakčním outboxem a asynchronním dispatcherem.
@@ -140,7 +145,7 @@ rezervační službou. Obojí je doplněno testy výše. Chybějící přechod v
 modelu je nesoulad v DD — kód je správně (zabraňuje věčnému `PENDING` záznamu),
 proto se upraví DD, ne kód.
 
-## Zbývající návrhová rizika
+## Remaining design risks
 
 - Doručení typu at-least-once může po pádu workeru vytvořit duplicity.
 - Přijímač ignorující `Idempotency-Key` může duplicity skutečně zaznamenat.

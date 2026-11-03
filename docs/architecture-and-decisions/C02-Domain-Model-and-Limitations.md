@@ -1,6 +1,8 @@
-# C02 — Doménový model a známá omezení
+# C02 — Domain model and known limitations
 
-## Doménový model
+← [Navigator](../NAVIGATOR.md) · [Traceability](../TRACEABILITY.md) · Related: [Domain rules](../intent-and-change/C02-Domain-Rules.md) · [States](../intent-and-change/C02-States-and-Transitions.md) · [Operations](../intent-and-change/C02-Operations-and-Requirements.md) · [C02 evidence](../evidence-and-evolution/C02-Specification-to-Running-App.md)
+
+## Domain model
 
 Aplikace `reservation` definuje pět doménových modelů a model alokace sedadel:
 
@@ -10,13 +12,13 @@ Aplikace `reservation` definuje pět doménových modelů a model alokace sedade
   a obsahuje příznak `is_active`.
 - **Performance** — konkrétní uvedení `Play` v daném `Hall` v daný čas (`start_at`)
 - **Reservation** — reprezentuje jednu rezervaci pro konkrétní `Performance` a
-	může obsahovat jedno nebo více vybraných `Seat`. Jedno sedadlo nesmí být pro
-	stejné představení součástí více aktivních rezervací. Rezervace používá
-	stavy `DRAFT`, `PENDING_APPROVAL`, `CONFIRMED`, `CANCELLED`, `REJECTED` a
-	`EXPIRED`. Aktivní `DRAFT` drží všechna vybraná sedadla po dobu
-	`hold_until`; `PENDING_APPROVAL` je blokuje do rozhodnutí nebo vypršení;
-	`CONFIRMED` je blokuje trvale pro dané představení; `CANCELLED`,
-	`REJECTED` a `EXPIRED` sedadla neblokují.
+  může obsahovat jedno nebo více vybraných `Seat`. Jedno sedadlo nesmí být pro
+  stejné představení součástí více aktivních rezervací. Rezervace používá
+  stavy `DRAFT`, `PENDING_APPROVAL`, `CONFIRMED`, `CANCELLED`, `REJECTED` a
+  `EXPIRED`. Aktivní `DRAFT` drží všechna vybraná sedadla po dobu
+  `hold_until`; `PENDING_APPROVAL` je blokuje do rozhodnutí nebo vypršení;
+  `CONFIRMED` je blokuje trvale pro dané představení; `CANCELLED`,
+  `REJECTED` a `EXPIRED` sedadla neblokují.
 - **ReservationSeat** — vazba rezervace na sedadlo a představení. Uchovává
   historii sedadel; příznak `active` odlišuje aktuální blokování. Podmíněný
   unikátní constraint dovolí pouze jednu aktivní alokaci pro `(performance, seat)`.
@@ -29,7 +31,7 @@ bez ohledu na počet sedadel.
 
 
 
-## Umístění business logiky
+## Business logic placement
 
 `reservation/services.py` obsahuje OP-01 až OP-05, obnovu aktivity a expiraci.
 Modely popisují data a databázová omezení. Testy v `reservation/tests.py`
@@ -40,7 +42,7 @@ outboxové požadavky v rezervační transakci a samostatný dispatcher je doru�
 odmítnou operaci po deadline a dostupnost ignoruje vypršené držení bez
 změny stavu. Pro pravidelné přepisování stavu do `EXPIRED` musí časovač běžet.
 
-## Známá omezení (stav k C02)
+## Known limitations (as of C02)
 
 - Notification Service zatím pouze zapisuje události do lokálního logu;
   externí doručování a jeho retry nejsou implementované.

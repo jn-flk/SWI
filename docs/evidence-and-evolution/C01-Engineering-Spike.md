@@ -1,8 +1,14 @@
 # C01 — Engineering Spike
-## Question / unknown:
+
+← [Navigator](../NAVIGATOR.md) · [Traceability](../TRACEABILITY.md) · Related: [Project Frame](../intent-and-change/C01-Project-Frame.md) · [Tech stack](../architecture-and-decisions/C01-Tech-Stack-and-Key-Decisions.md)
+
+## Question / unknown
+
 Can we create, persist and retrieve a Reservation with its
 related Seat and Performance using Django ORM and SQLite?
-## What we did:
+
+## What we did
+
 We created the Django reservation app with models for Seat,
 Play, Hall, Performance and Reservation.
 
@@ -15,16 +21,18 @@ implemented an automated test that:
 4. retrieves the Reservation from the database,
 5. verifies the expected Play, Hall and Seat relationships,
 6. attempts to create a duplicate Reservation for the same
-	Performance and Seat,
+   Performance and Seat,
 7. verifies that the database constraint prevents the duplicate.
 
-## Observed result:
+## Observed result
+
 The Reservation was successfully persisted and retrieved from
 SQLite with the expected relationships.
 
 The database also prevented a second Reservation for the same
 Performance and Seat because of the unique constraint.
 
-## Decision / what changes because of the result:
+## Decision / what changes because of the result
+
 We will use Django ORM and the current relational model as the
 persistence approach for the CP1 implementation.

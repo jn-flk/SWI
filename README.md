@@ -5,6 +5,8 @@
 
 **Repozitář:** https://github.com/jn-flk/SWI
 
+**Dokumentace:** [Navigátor dokumentace](docs/NAVIGATOR.md) — rozcestník všech dokumentů, diagramů a klíčových souborů kódu.
+
 
 ## Doména rezervací
 Co konkrétně rezervujeme?

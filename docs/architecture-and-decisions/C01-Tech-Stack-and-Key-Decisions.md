@@ -1,20 +1,22 @@
-# C01 — Technologický stack a klíčová rozhodnutí
+# C01 — Tech stack and key decisions
 
-## Technologický stack
+← [Navigator](../NAVIGATOR.md) · [Traceability](../TRACEABILITY.md) · Related: [Project Frame](../intent-and-change/C01-Project-Frame.md) · [Engineering spike](../evidence-and-evolution/C01-Engineering-Spike.md)
+
+## Tech stack
 
 - **Jazyk:** Python 3
 - **Framework:** Django 6.1
 - **Databáze:** SQLite (vývojové prostředí) — přes Django ORM
 - **Testování:** vestavěný Django `TestCase` (`python manage.py test`)
 
-## Struktura projektu
+## Project structure
 
 Jeden Django projekt `rezervace_divadlo` se dvěma aplikacemi: `reservation`
 pro lifecycle a `notification` pro outbox/delivery.
 
 
 
-## Klíčová rozhodnutí
+## Key decisions
 
 | Rozhodnutí | Zdůvodnění |
 |---|---|

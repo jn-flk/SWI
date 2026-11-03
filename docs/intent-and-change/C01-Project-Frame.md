@@ -1,26 +1,22 @@
 # C01 — Project Frame
 
-Resource - sedadlo
-Reservation - konkrétní představení
-STACK - Django - SQLite
+← [Navigator](../NAVIGATOR.md) · [Traceability](../TRACEABILITY.md) · Related: [Tech stack](../architecture-and-decisions/C01-Tech-Stack-and-Key-Decisions.md) · [Engineering spike](../evidence-and-evolution/C01-Engineering-Spike.md)
+
+- **Resource:** sedadlo
+- **Reservation:** konkrétní představení
+- **Stack:** Django, SQLite
 
 ## Reservation domain
-Co konkrétně rezervujeme?
-
 sedadla v divadle na představení
 
 ## Purpose
-1-3 věty: komu systém slouží a proč.
-
 Systém slouží pro návštěvníky divadla, kteří by si chtěli rezervovat sedadla předem nebo přes web.
 
 ## Users / Stakeholders
-1–3 role.
-
 Návštěvníci divadla; oprávněný schvalovatel rezervací.
 
 ## Core concepts
-Reservation, Resource, User + případně 0–3 další pojmy.
+Reservation, Resource (sedadlo), User.
 
 ## Core operations
 - Create reservation
@@ -29,9 +25,8 @@ Reservation, Resource, User + případně 0–3 další pojmy.
 - Check availability
 
 ## Persistent state
-Co ukládáme o Reservation a Resource.
-Resource (sedadlo) - řada, číslo sedadla
-Reservation (konkrétní představení) - časový slot, hra, jedno nebo více
+- **Resource (sedadlo):** řada, číslo sedadla
+- **Reservation (konkrétní představení):** časový slot, hra, jedno nebo více
 vybraných sedadel, stav, `hold_until` a případná lhůta pro schválení.
 
 ## Common business rule
@@ -55,5 +50,5 @@ We do not yet know whether our proposed model relationships can
 actually persist and retrieve a Reservation correctly from the database.
 
 ## Selected future pressure
-Category: Q
-Concrete pressure: 20x souběžnch rezervací
+- **Category:** Q
+- **Concrete pressure:** 20× souběžných rezervací

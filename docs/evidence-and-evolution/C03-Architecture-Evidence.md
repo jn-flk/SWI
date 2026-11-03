@@ -1,20 +1,25 @@
 # C03 — Architecture Evidence
 
-Baseline: v0.2
-Part A: OP-03 Confirm Reservation, včetně přímého potvrzení a schvalovací větve.
+← [Navigator](../NAVIGATOR.md) · [Traceability](../TRACEABILITY.md) · Related: [AS-IS mapping](../architecture-and-decisions/C03-AS-IS-Mapping.md) · [Architecture design](../architecture-and-decisions/C03-Architecture-Design.md)
 
-Drivers:
+**Baseline:** v0.2
+
+**Sledovaný scénář:** OP-03 (Confirm Reservation), včetně přímého potvrzení a schvalovací větve.
+
+## Drivers
 
 - zachovat atomické blokování sedadel od vytvoření;
 - mít jednoznačné vlastnictví životního cyklu rezervace;
 - izolovat hranici Notification Service;
 - zachovat možnost schválení hromadné rezervace a expirace.
 
-Decision question: Jak rozdělit odpovědnosti pro potvrzení rezervace tak,
+## Decision question
+
+Jak rozdělit odpovědnosti pro potvrzení rezervace tak,
 aby stav, aktivní alokace, schválení a notifikace měly jasné vlastníky bez
 zavedení více deployables?
 
-Alternatives:
+## Alternatives
 
 - ponechat veškerou logiku v jednom controlleru bez explicitních hranic;
 - rozdělit doménu do více procesů/aplikací;
@@ -23,44 +28,52 @@ Alternatives:
 Zvolena byla třetí alternativa. Odpovídá ADR o jedné Django aplikaci,
 Django ORM/SQLite a business zápisech přes `services.py`.
 
-Scenario walkthrough: Visitor zavolá Confirm Reservation. Reservation
+## Scenario walkthrough
+
+Visitor zavolá Confirm Reservation. Reservation
 Management načte a zamkne rezervaci, ověří vlastníka, platnost držení a
 aktivní sedadla. Approval Workflow vyhodnotí limit 10 sedadel nebo celý sál.
 Při přímé větvi Reservation Management uloží `CONFIRMED`; při schvalovací
 větvi uloží `PENDING_APPROVAL` a deadline. Notifikace vzniká až po commitu.
 Při expiraci se stav nastaví na `EXPIRED` a aktivní alokace se uvolní.
 
-ADR: Přijato — logické prvky se mapují do jednoho Django procesu; aktivní
+## ADR
+
+Přijato — logické prvky se mapují do jednoho Django procesu; aktivní
 alokace chrání podmíněný unikátní databázový constraint; Notification Service
 je za adapter boundary a je volán přes post-commit notifikaci.
 
-Views:
+## Views
 
-- domain class — [domain-model.puml](../diagrams/c03/domain-model.puml)
-- context — [context.puml](../diagrams/c03/context.puml)
-- static architecture — [static-architecture.puml](../diagrams/c03/static-architecture.puml)
-- state ownership — [state-ownership.puml](../diagrams/c03/state-ownership.puml)
-- runtime/deployment — [runtime-deployment.puml](../diagrams/c03/runtime-deployment.puml)
-- design sequence — [design-sequence-confirm.puml](../diagrams/c03/design-sequence-confirm.puml)
-- focused design class — [focused-design-class.puml](../diagrams/c03/focused-design-class.puml)
+- doménový třídní model — [domain-model.puml](../diagrams/c03/domain-model.puml)
+- kontext (G1) — [context.puml](../diagrams/c03/context.puml)
+- statická architektura (G2) — [static-architecture.puml](../diagrams/c03/static-architecture.puml)
+- vlastnictví přechodů (G3) — [state-ownership.puml](../diagrams/c03/state-ownership.puml)
+- runtime a nasazení (G4) — [runtime-deployment.puml](../diagrams/c03/runtime-deployment.puml)
+- sekvence Confirm (H1) — [design-sequence-confirm.puml](../diagrams/c03/design-sequence-confirm.puml)
+- návrhový třídní diagram (H2) — [focused-design-class.puml](../diagrams/c03/focused-design-class.puml)
 
-Cross-view issues found/resolved: Ownership přechodů byl doplněn tak, že
+## Cross-view issues found/resolved
+
+Ownership přechodů byl doplněn tak, že
 Reservation Management rozhoduje o přímém potvrzení a odeslání ke schválení,
 Approval Workflow rozhoduje o approve/reject a Expiration Scheduler pouze
 spouští expiraci. Sekvence používá jen prvky ze statické architektury.
 Runtime mapuje všechny logické prvky do jednoho Django procesu.
 
+## Cross-view consistency checks
+
 | Kontrola | Výsledek |
 |---|---|
-| C02 ↔ G2: architektura realizuje lifecycle, dostupnost, schválení, expiraci a notifikace | PASS |
-| C2 ↔ G2: každá významná odpovědnost má právě jednoho hlavního ownera | PASS |
-| G2 ↔ H1: sekvence používá pouze povolené prvky a závislosti | PASS |
-| H1 ↔ H2: významné operace mají vlastníka v třídním návrhu | PASS |
-| statechart ↔ G3/H1: transition rozhoduje správný owner | PASS |
-| G2 ↔ G4: všechny logické prvky jsou namapované do Django procesu | PASS |
-| ADR ↔ G2/G4: jedna Django aplikace, ORM/SQLite a constraint jsou viditelné | PASS |
+| C02 ↔ statická architektura (G2): architektura realizuje lifecycle, dostupnost, schválení, expiraci a notifikace | PASS |
+| tabulka odpovědností ↔ statická architektura (G2): každá významná odpovědnost má právě jednoho hlavního ownera | PASS |
+| statická architektura (G2) ↔ sekvence Confirm (H1): sekvence používá pouze povolené prvky a závislosti | PASS |
+| sekvence Confirm (H1) ↔ návrhový třídní diagram (H2): významné operace mají vlastníka v třídním návrhu | PASS |
+| stavový diagram ↔ vlastnictví přechodů (G3) a sekvence Confirm (H1): přechod rozhoduje správný owner | PASS |
+| statická architektura (G2) ↔ runtime a nasazení (G4): všechny logické prvky jsou namapované do Django procesu | PASS |
+| ADR ↔ statická architektura (G2) a runtime a nasazení (G4): jedna Django aplikace, ORM/SQLite a constraint jsou viditelné | PASS |
 
-AS-IS → TO-BE delta:
+## AS-IS → TO-BE delta
 
 | Oblast | AS-IS | TO-BE | Akce |
 |---|---|---|---|
@@ -70,12 +83,14 @@ AS-IS → TO-BE delta:
 | dependency rule | implicitní import boundary | ověřená izolace logging/adapteru | VERIFY |
 | runtime | jedna Django aplikace | jeden Reservation Application process | KEEP |
 
-Implementation changes: Žádná řádka `CHANGE` nebyla nalezena. Přidána byla
+## Implementation changes
+
+Žádná řádka `CHANGE` nebyla nalezena. Přidána byla
 jen opakovatelná architektonická kontrola v
 [reservation/tests.py](../../src/rezervace_divadlo/reservation/tests.py), která
 ověřuje, že import `logging` zůstává izolován v `notifications.py`.
 
-Behaviour verification:
+## Behaviour verification
 
 | Ověření | Výsledek | Doklad |
 |---|---|---|
@@ -84,7 +99,7 @@ Behaviour verification:
 | alternative/failure — approve/reject | PASS | `test_only_approver_can_decide_and_rejection_releases_seats` |
 | relevant boundary/concurrency rule | PARTIAL | 20 Django testů + `manage.py check`; atomická ochrana a constraint jsou ověřeny sekvenční sadou, skutečný paralelní test zatím chybí |
 
-Architecture conformance rule + result:
+## Architecture conformance rule + result
 
 ```text
 Architektonické pravidlo:
@@ -97,9 +112,13 @@ Výsledek:
   PASS — jediný modul importující logging je notifications.py.
 ```
 
-Remaining uncertainty / risk: Sada neprokazuje výkon při 20 paralelních
+## Remaining uncertainty / risk
+
+Sada neprokazuje výkon při 20 paralelních
 požadavcích ani skutečné doručení a retry externích notifikací. Samostatně
 není otestován převod existujících dat migrací `0002`.
 
-Commit/tag: `2c9915b` — `docs: G-M diagrams, test implementation, evidence`;
+## Commit/tag
+
+`2c9915b` — `docs: G-M diagrams, test implementation, evidence`;
 pozdější dokumentační opravy jsou součástí commitu `699b501`.

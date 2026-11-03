@@ -1,6 +1,8 @@
 # C06 — Internal Evidence Assessment
 
-Assessed baseline:
+← [Navigator](../NAVIGATOR.md) · [Traceability](../TRACEABILITY.md) · Related: [C07 review and risks](../evidence-and-evolution/C07-Technical-Review-and-Risk-Register.md)
+
+## Assessed baseline
 
 - **Tag `C05`**, commit `5f528647f6b132ceac27b9c0ef95270ae5ae3e24`
   (`5f52864`), aktuální lokální `main` po návratu na tuto verzi.
@@ -9,7 +11,7 @@ Assessed baseline:
 - Historické milníky: `C01` (`1137bbf`), `C02` (`6ebfcc1`),
   `C03` (`1799c7b`). Tag `C05` zahrnuje implementaci outboxu, DD
   a doplněnou verifikaci; identifikuje také C05 evidenci s TODO v [C05-DD-Verification.md](C05-DD-Verification.md).
-- Podklad: Hodnocení SIGMA → HAH z 19. 10. 2026. F1–F3 byly znovu porovnány s aktuálními
+- Podklad: hodnocení našeho týmu HAH týmem SIGMA z 19. 10. 2026. F1–F3 byly znovu porovnány s aktuálními
   soubory; rozhodnutí níže se vztahují výhradně k tagu `C05`.
 - Ve zdrojích je 23 rezervačních a 23 notifikačních testů. [C05 evidence](C05-DD-Verification.md)
   zaznamenává 46 úspěšných testů za 0,393 s na Pythonu 3.11.9
@@ -17,7 +19,7 @@ Assessed baseline:
   dostupnému prostředí chybí Django. Nové ověření je statické porovnání
   specifikace, diagramových zdrojů, implementace a testových očekávání.
 
-Verified findings:
+## Verified findings
 
 - **F1 — C02, VERIFIED FINDING:** OP-01/OP-03 neúplně popisují
   implementovaný cutoff 15 minut, minimální předstih 24 hodin pro
@@ -28,8 +30,8 @@ Verified findings:
   `diagrams/c02/state.puml` a aktivity oproti
   `reservation/services.py:_check_lead_time`, `_requires_approval`,
   `confirm_reservation`, `touch_reservation` a příslušným testům.
-- **F2 — C03, VERIFIED FINDING:** G2/H1 a C03 evidence stále uvádějí
-  post-commit adaptér, G4 neukazuje dispatcher. Skutečná cesta je
+- **F2 — C03, VERIFIED FINDING:** statická architektura (G2), sekvence Confirm (H1) a C03 evidence stále uvádějí
+  post-commit adaptér, runtime a nasazení (G4) neukazuje dispatcher. Skutečná cesta je
   `_notify` → `notification.services.record_notification` uvnitř
   rezervační transakce; doručuje samostatný dispatcher mimo transakci.
   Citovaný test `test_notification_side_effect_is_isolated_to_integration_adapter`
@@ -45,7 +47,7 @@ Verified findings:
   chybí. Selhání uložená tímto úklidem se navíc nezapočítávají do
   `counts["failed"]` vráceného dispatcherem.
 
-Owner disposition:
+## Owner disposition
 
 | Finding | Disposition | Důvod / evidence |
 |---|---|---|
@@ -53,12 +55,12 @@ Owner disposition:
 | F2 | ACCEPTED — change required | Aktuální outbox neodpovídá starým pohledům a tvrzenému conformance PASS; sjednotit architekturu a evidenci. |
 | F3 | ACCEPTED — change required | DD vynechává implementovaný a testem popsaný přechod; vyjasnit také kontrakt počitadla selhání. |
 
-Actions / justified no-change decisions:
+## Actions / justified no-change decisions
 
 - **F1:** Doplnit OP-01/OP-03, odkazy na pravidla a diagramy o časové
   kontroly, schvalovací deadline a obnovu držení; vyloučit celý sál
   z guardu přímého potvrzení. Zachovat implementované časové chování.
-- **F2:** Aktualizovat G2/G4/H1 a ADR pro transakční outbox a samostatný
+- **F2:** Aktualizovat statickou architekturu (G2), runtime a nasazení (G4), sekvenci Confirm (H1) a ADR pro transakční outbox a samostatný
   dispatch worker. Staré závěry označit jako nahrazené; nedoložený PASS
   odstranit nebo nahradit existující opakovatelnou kontrolou.
   Zachovat transakční zápis a doručování mimo transakci.
@@ -69,16 +71,16 @@ Actions / justified no-change decisions:
   posouzení a rozhodnutí, nikoli důkazem uzavření nálezů. Konkrétní
   vlastníky a termíny navazujících akcí tým dosud neurčil.
 
-Remaining evidence gaps:
+## Remaining evidence gaps
 
 - Nový reprodukovatelný běh testů svázaný s tagem `C05`. Původní review
   uvádí úspěšný B2, ale ve F1–F3 tvrdí, že testy nebyly spuštěny;
   tento rozpor nelze považovat za doklad nového ověření.
-- Pro Q1–Q3 chybí definovaný workload, přijatelné latence a četnost
+- Pro položky Q1–Q3 (kvalita a měření, C04) chybí definovaný workload, přijatelné latence a četnost
   `busy` i skutečné měření 20 souběžných rezervací a rozhodnutí z výsledku.
 - Chybějí testy souběžného Confirm, Confirm s neaktivním sedadlem,
   souběžných claimů dvou workerů, kladných nastavení, zkrácení chyby
   na 2 000 znaků, outbox DB constraintů a počítání úklidových selhání.
-- Sjednotit ownership expirace v G3 s rezervačními službami a zachytit
+- Sjednotit ownership expirace v pohledu vlastnictví přechodů (G3) s rezervačními službami a zachytit
   lazy expiry. Po opravách doložit návaznost původního tagu `C05`
   na nový reporting commit/tag a důkazy uzavření F1–F3.

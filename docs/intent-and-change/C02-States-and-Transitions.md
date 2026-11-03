@@ -1,6 +1,8 @@
-# C02 — Stavy a přechody
+# C02 — States and transitions
 
-## Stavy rezervace
+← [Navigator](../NAVIGATOR.md) · [Traceability](../TRACEABILITY.md) · Related: [Domain rules](../intent-and-change/C02-Domain-Rules.md) · [Operations](../intent-and-change/C02-Operations-and-Requirements.md) · [Domain model](../architecture-and-decisions/C02-Domain-Model-and-Limitations.md) · [C02 evidence](../evidence-and-evolution/C02-Specification-to-Running-App.md)
+
+## Reservation states
 
 - `DRAFT`: uživatel vybral jedno nebo více sedadel a pokračoval k rezervaci.
     Sedadla jsou po omezenou dobu dočasně držena pro daného návštěvníka.
@@ -16,7 +18,7 @@
 - `EXPIRED`: držení nebo čekání na schválení vypršelo bez aktivního
     rozhodnutí. Stav je terminální a sedadla již nejsou blokována.
 
-## Přechody
+## Transitions
 
 - `[none] -> DRAFT`: vznikne nová rezervace pro vybraná sedadla a systém je
     po omezenou dobu drží pro daného návštěvníka.

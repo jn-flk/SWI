@@ -1,17 +1,19 @@
-# C03 — Současná realizace Confirm Reservation
+# C03 — Current implementation of Confirm Reservation (AS-IS)
 
-## Sledovaný scénář
+← [Navigator](../NAVIGATOR.md) · [Traceability](../TRACEABILITY.md) · Related: [Architecture design](../architecture-and-decisions/C03-Architecture-Design.md) · [C03 evidence](../evidence-and-evolution/C03-Architecture-Evidence.md)
+
+## Traced scenario
 
 | Položka | Hodnota |
 |---|---|
 | Operace | OP-03 — Confirm Reservation |
-| Požadavky | REQ-03, REQ-04 — [intent-and-change/C02-Operations-and-Requirements.md](../intent-and-change/C02-Operations-and-Requirements.md) |
-| Pravidla | BR-02, BR-04, BR-06, BR-07, BR-08 — [intent-and-change/C02-Domain-Rules.md](../intent-and-change/C02-Domain-Rules.md) |
-| Baseline | v0.2 — [evidence-and-evolution/C02-Specification-to-Running-App.md](../evidence-and-evolution/C02-Specification-to-Running-App.md) |
+| Požadavky | REQ-03, REQ-04 — [C02-Operations-and-Requirements.md](../intent-and-change/C02-Operations-and-Requirements.md) |
+| Pravidla | BR-02 (Exclusive Resource invariant), BR-04 (Confirmation policy), BR-06 (Concurrent outcome), BR-07 (Hold and inactivity policy), BR-08 (Bulk approval lead time) — [C02-Domain-Rules.md](../intent-and-change/C02-Domain-Rules.md) |
+| Baseline | v0.2 — [C02-Specification-to-Running-App.md](../evidence-and-evolution/C02-Specification-to-Running-App.md) |
 
 Doklady níže uvádějí soubor a funkci/model. [Testy](../../src/rezervace_divadlo/reservation/tests.py) byly přečteny, nově se nespouštěly.
 
-## Hlavní průchod scénáře → kód
+## Main scenario path → code
 
 | Krok scénáře z C02 | Realizace v kódu | Doklad |
 |---|---|---|
@@ -21,7 +23,7 @@ Doklady níže uvádějí soubor a funkci/model. [Testy](../../src/rezervace_div
 | Změnit a uložit stav. | `CONFIRMED` nebo `PENDING_APPROVAL`; zrušit držení, případně nastavit deadline schválení. Blokování zůstává, kolize se znovu nekontroluje. | [services.py][services]: `_set_status`, `confirm_reservation` |
 | Vrátit výsledek. | Vrátit `Reservation`; u schvalovací větve ve stejné transakci zapsat `NotificationRequest`. | [services.py][services]: `confirm_reservation`, `_notify`; [notification services.py][notification-services]: `record_notification` |
 
-## Důležitá chybová větev
+## Important failure branch
 
 | Co říká v0.2 | Kde se podmínka zjistí | Kde se rozhodne výsledek | Co dostane volající |
 |---|---|---|---|
@@ -30,9 +32,9 @@ Doklady níže uvádějí soubor a funkci/model. [Testy](../../src/rezervace_div
 | Specifikace | Implementace | Doklad |
 |---|---|---|
 | Hranice schvalování je sjednocena v aktuální specifikaci a implementaci. | Schválení nad 10 sedadel nebo pro celý sál. | [services.py][services]: `_requires_approval`; [settings.py][settings]: limit 10; test `test_ten_seats_confirm_directly_but_eleven_require_approval` |
-| BR-08 používá politiku minimálního předstihu. | Alespoň 24 h před začátkem při Create i Confirm. | [services.py][services]: `_check_lead_time`; [settings.py][settings]: `RESERVATION_APPROVAL_HOURS` |
+| BR-08 (Bulk approval lead time) používá politiku minimálního předstihu. | Alespoň 24 h před začátkem při Create i Confirm. | [services.py][services]: `_check_lead_time`; [settings.py][settings]: `RESERVATION_APPROVAL_HOURS` |
 
-## Hlavní části implementace
+## Main implementation parts
 
 | Část implementace | Typ / obsah | Role v tomto scénáři | Doklad |
 |---|---|---|---|
@@ -41,14 +43,14 @@ Doklady níže uvádějí soubor a funkci/model. [Testy](../../src/rezervace_div
 | Konfigurace | Modul `settings.py` | Limity politiky a připojení DB. | [settings.py][settings] |
 | Notifikace | Aplikace `notification` | Transakční outbox a asynchronní dispatcher; výchozí sender loguje lokálně. | [notification services.py][notification-services], [dispatcher.py][dispatcher] |
 
-## Stav, změna stavu a pravidlo
+## State, state change and rule
 
 | Otázka | Odpověď | Doklad |
 |---|---|---|
 | Kde je stav trvale uložen? | SQLite: `reservation_reservation` (stav, deadline), `reservation_reservationseat` (blokování). | [models.py][models]: `Reservation`, `ReservationSeat`; [settings.py][settings]: `DATABASES` |
 | Kdo rozhoduje a provádí přechod? | `confirm_reservation` rozhoduje, `_set_status` ukládá; `_expire_one` rozhoduje o expiraci. | [services.py][services] |
 
-Pravidlo BR-04: potvrdit pouze platný `DRAFT`.
+Pravidlo BR-04 (Confirmation policy): potvrdit pouze platný `DRAFT`.
 
 | Otázka | Odpověď | Doklad |
 |---|---|---|
@@ -56,9 +58,9 @@ Pravidlo BR-04: potvrdit pouze platný `DRAFT`.
 | Kde se rozhodne? | `confirm_reservation` zvolí potvrzení, schvalování nebo chybu; `_expire_one` zvolí expiraci. | [services.py][services] |
 | Kde se změní stav? | `_set_status` uloží stav; při expiraci vypne alokace. | [services.py][services]: `_set_status` |
 
-BR-02 chrání už Create a DB constraint `unique_active_performance_seat`; Confirm blokování zachovává.
+BR-02 (Exclusive Resource invariant) chrání už Create a DB constraint `unique_active_performance_seat`; Confirm blokování zachovává.
 
-## Relevantní závislosti
+## Relevant dependencies
 
 | Závislost | Kde se napojuje | Která část zná technické API | Doklad |
 |---|---|---|---|
@@ -66,16 +68,16 @@ BR-02 chrání už Create a DB constraint `unique_active_performance_seat`; Conf
 | Notification Service — outbox a dispatcher | `_notify` zapíše outbox ve stejné transakci při žádosti o schválení nebo expiraci; samostatný dispatcher doručuje později. | `notification.services` validuje a snapshotuje událost; `notification.adapters` obsahuje logging/HTTP sendery. | [notification services.py][notification-services]; [dispatcher.py][dispatcher] |
 | Django auth | Kontrola předaného uživatele a oprávnění. | `services.py`: `is_authenticated`, `is_active`, `has_perm`. | [services.py][services]: `_authorize_owner` |
 
-## AS-IS strukturální diagram
+## AS-IS structural diagram
 
 Diagram je ve složce [diagrams/c03/](../diagrams/c03/):
 [AS-IS — Confirm Reservation (PlantUML)](../diagrams/c03/as-is-confirm-reservation.puml).
 
 Obsah modulů viz tabulka hlavních částí. Auth a logging jsou frameworkové závislosti; notifikace se při přímém potvrzení nevolá.
 
-## Otázka pro další architektonický návrh
+## Question for the next architecture step
 
-| Item | Content |
+| Položka | Obsah |
 |---|---|
 | Otázka | Zvládne SQLite požadovaných 20 souběžných rezervací při zachování REQ-04? |
 | Doklad | [settings.py][settings]: `IMMEDIATE`, timeout 20 s; [services.py][services]: chyba `busy` při zamčené DB. Test `test_confirm_cannot_be_repeated` ověřuje jen sekvenční opakování. |

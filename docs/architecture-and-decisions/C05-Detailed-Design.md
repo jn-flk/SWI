@@ -1,6 +1,8 @@
 # C05 — Detailed Design
 
-## Vybraná architektonická odpovědnost / softwarová jednotka
+← [Navigator](../NAVIGATOR.md) · [Traceability](../TRACEABILITY.md) · Related: [C05 evidence](../evidence-and-evolution/C05-DD-Verification.md)
+
+## Selected architecture responsibility / software unit
 
 **Doručování notifikací přes outbox** je samostatná část uvnitř hranice
 notifikační služby. Zahrnuje atomický zápis požadavku na notifikaci,
@@ -11,14 +13,31 @@ transakce; dispatcher se spouští samostatně po commitu.
 Názvy sloupců v tabulkách této C05 dokumentace jsou ponechány v angličtině
 podle zadané osnovy; obsah tabulek je vyplněn česky s diakritikou.
 
-| Item | Content |
+| Položka | Obsah |
 |---|---|
 | Související požadavky | Notifikace nesmí změnit výsledek rezervační operace; požadavek se nesmí ztratit mezi commitem rezervace a doručením; neúspěšné doručení se musí opakovat. |
 | Související scénáře | `approval_requested`, `approved`, `rejected`, `expired`; jednorázové zpracování i `dispatch_notifications --watch`. |
 | Relevantní pravidla | Outbox je součástí transakce rezervace; externí I/O nikdy nedrží databázovou transakci; doručení je typu at-least-once; příjemce deduplikuje podle stabilního ID. |
 | Hranice | `reservation.services` -> `notification.services` -> `NotificationRequest`; `notification.dispatcher` -> `NotificationSender` -> externí služba. |
 
-## Detailní odpovědnosti
+## Glossary
+
+| Pojem | Význam |
+|---|---|
+| Outbox | Tabulka `NotificationRequest`, do které rezervační transakce zapíše požadavek na notifikaci. Doručení proběhne později. |
+| Dispatcher | Část, která čte outbox a řídí doručování (`notification.dispatcher`). |
+| Worker | Běžící proces, který dispatcher spouští. |
+| Sender | Adaptér, který zprávu skutečně odešle (`NotificationSender`). |
+| Snapshot | Kopie údajů o rezervaci uložená v okamžiku události. |
+| Audience | Komu je zpráva určena: `approvers` nebo `owner`. |
+| Claim | Převzetí záznamu workerem k doručení (`claim_token`). |
+| Lease | Časově omezená platnost claimu (`claimed_until`). |
+| Fencing | Výsledek se zapíše jen tehdy, když worker stále drží aktuální `claim_token`. Pozdní worker tak nepřepíše novější claim. |
+| Sweep | Úklid: expirovaný claim s `attempts >= max` přejde do `FAILED`. |
+| Backoff | Prodleva před dalším pokusem; zdvojnásobuje se až do nastaveného maxima. |
+| At-least-once | Zpráva se doručí alespoň jednou, po pádu workeru i vícekrát. |
+
+## Detailed responsibilities
 
 | Detailed responsibility | Why is it needed? |
 |---|---|
@@ -30,19 +49,19 @@ podle zadané osnovy; obsah tabulek je vyplněn česky s diakritikou.
 | Opakovat s omezenou prodlevou | Dočasné chyby se opakují, ale počet pokusů a prodleva mají horní mez. |
 | Poskytnout provozní ovládání | Management command poskytuje jednorázové i průběžné zpracování a počty výsledků. |
 
-## Návrhové prvky, vlastnictví a data
+## Design elements, ownership and data
 
 | Responsibility  | Owner  | State/data | Why here? |
 |---|---|---|---|
 | Zapsat událost | `notification.services.record_notification` | event, snapshot rezervace, `PENDING` | Jediné místo validace podporovaných eventů a transakčního zápisu. |
 | Trvalý stav doručení | `NotificationRequest` | `status`, `attempts`, `next_attempt_at`, `sent_at`, `last_error` | Stav musí přežít restart procesu. |
-| Algoritmus převzetí a doručení | `notification.dispatcher` | `claim_token`, `claimed_until` | Lease a fencing patří k orchestrace workeru, nikoli k senderu. |
+| Algoritmus převzetí a doručení | `notification.dispatcher` | `claim_token`, `claimed_until` | Lease a fencing patří k orchestraci workeru, nikoli k senderu. |
 | Externí protokol | `NotificationSender` | `NotificationMessage` | Stabilní kontrakt umožňuje logging, HTTP i test double. |
 | HTTP transport | `HttpSender` | endpoint, timeout, idempotency key | Pouze adaptér zná URL a HTTP protokol. |
 | Lokální vývojový sink | `LoggingSender` | log event | Vývojový sender nepředstírá externí doručení. |
 | Provozní smyčka | management command | interval, batch size, watch | CLI řeší životní cyklus procesu, nikoli business stav zprávy. |
 
-## Rozhraní / kontrakt
+## Interface / contract
 
 ```text
 <<interface>> NotificationSender
@@ -71,7 +90,7 @@ HTTP varianta posílá `message.id` také jako `Idempotency-Key`. Kontrakt
 negarantuje doručení exactly-once; externí přijímač musí stejné ID
 deduplikovat.
 
-## Invarianty a stavový model
+## Invariants and state model
 
 ```text
 PENDING --převzetí--> PENDING + claim_token + claimed_until
@@ -91,7 +110,7 @@ Platí:
 - `claim_token` a `claimed_until` jsou buď obě prázdné, nebo obě vyplněné;
 - po překročení lease může vzniknout duplicitní odeslání, proto je nutná idempotence přijímače.
 
-## Významné operace
+## Significant operations
 
 ### `record_notification(reservation, event)`
 
@@ -126,7 +145,7 @@ Platí:
 | Output | Žádná hodnota při 2xx. |
 | Failure behavior | Chybějící endpoint, síťová chyba nebo non-2xx odpověď vyvolá výjimku pro opakování dispatcherem. |
 
-## Algoritmus / rozhodovací logika
+## Algorithm / decision logic
 
 ```text
 ověř nastavení dispatcheru
@@ -151,7 +170,7 @@ změnu na `(id, attempts)` a commitne lease před externím voláním. Pozdějš
 zápis úspěchu/chyby je podmíněn dvojicí `(id, status=PENDING,
 claim_token=current)`; to je fencing proti pozdnímu workeru.
 
-## Detailní sekvence
+## Detailed sequence
 
 1. `ReservationService` změní stav rezervace uvnitř `transaction.atomic`.
 2. `_notify` zavolá `record_notification`.
@@ -168,7 +187,7 @@ Focused structural view: [c05-notification-outbox.puml](../diagrams/c05/c05-noti
 
 ![C05 — Doručování notifikací přes outbox](../diagrams/c05/c05-notification-outbox.png)
 
-## C03 baseline -> skutečný návrh C05
+## C03 baseline → actual C05 design
 
 | Předpoklad C03 | Návrhové rozhodnutí C05 |
 |---|---|
@@ -177,7 +196,7 @@ Focused structural view: [c05-notification-outbox.puml](../diagrams/c05/c05-noti
 | Notifikační integrace je post-commit vedlejší účinek | Integrace je rozdělena na transakční zápis a asynchronní doručení. |
 | Jeden lokální adaptér | `NotificationSender` podporuje loggingový i HTTP adaptér. |
 
-## Rozhodnutí DD záměrně ponechaná kódu
+## Detailed design (DD) decisions intentionally left to code
 
 - deklarace polí Django modelu, syntaxe migrací a boilerplate administrace;
 - triviální logovací příkaz `LoggingSender`;

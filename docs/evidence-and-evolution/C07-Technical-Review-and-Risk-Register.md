@@ -1,27 +1,29 @@
-# C07 — Vypořádání nálezů, technické argumenty a risk register
+# C07 — Finding disposition, technical arguments and risk register
 
-## Následné vypořádání nálezů po assessmentu C05
+← [Navigator](../NAVIGATOR.md) · [Traceability](../TRACEABILITY.md) · Related: [C06 assessment](../evidence-and-evolution/C06-Internal-Evidence-Assessment.md)
+
+## Disposition of findings F1–F3 from the C06 assessment
 
 | Oblast | Co bylo provedeno | Konkrétní evidence |
 |---|---|---|
-| F1 — specifikace a pravidla | C02 operations, pravidla a diagramové zdroje byly sjednoceny s cutoffem 15 minut, předstihem 24 hodin, prioritou schválení celého sálu a obnovou držení. | [`intent-and-change/C02-Operations-and-Requirements.md`](../intent-and-change/C02-Operations-and-Requirements.md) OP-01, OP-01a a OP-03; [`intent-and-change/C02-Domain-Rules.md`](../intent-and-change/C02-Domain-Rules.md) BR-07/BR-08; [`activity-op03-confirm.puml`](../diagrams/c02/activity-op03-confirm.puml), [`activity-op01-create.puml`](../diagrams/c02/activity-op01-create.puml), [`state.puml`](../diagrams/c02/state.puml), [`use-case.puml`](../diagrams/c02/use-case.puml) |
-| F2 — architektura a evidence | Pohledy C03 a evidence používají transakční outbox a samostatný dispatcher; starý `on_commit` popis je historická baseline. | [`architecture-and-decisions/C03-Architecture-Design.md`](../architecture-and-decisions/C03-Architecture-Design.md); [`design-sequence-confirm.puml`](../diagrams/c03/design-sequence-confirm.puml); [`static-architecture.puml`](../diagrams/c03/static-architecture.puml); [`dispatcher.py`](../../src/rezervace_divadlo/notification/dispatcher.py) |
-| F3 — DD a dispatcher | DD popisuje terminální přechod expirovaného lease do `FAILED`; dispatcher započítává úklidová selhání do `counts["failed"]`. | [`architecture-and-decisions/C05-Detailed-Design.md`](../architecture-and-decisions/C05-Detailed-Design.md) — stavový model a pseudokód; [`dispatcher.py`](../../src/rezervace_divadlo/notification/dispatcher.py); [`test_crash_on_last_attempt_becomes_failed_without_another_send`](../../src/rezervace_divadlo/notification/tests.py) |
-| C04/Q evidence | Byl doplněn reprodukovatelný příkaz a testovací podklad pro lokální měření dvaceti souběžných pokusů. | [`measure_reservation_concurrency.py`](../../src/rezervace_divadlo/reservation/management/commands/measure_reservation_concurrency.py); [`tests_concurrency.py`](../../src/rezervace_divadlo/reservation/tests_concurrency.py) |
+| F1 — specifikace a pravidla | C02 operations, pravidla a diagramové zdroje byly sjednoceny s cutoffem 15 minut, předstihem 24 hodin, prioritou schválení celého sálu a obnovou držení. | [`C02-Operations-and-Requirements.md`](../intent-and-change/C02-Operations-and-Requirements.md) OP-01, OP-01a a OP-03; [`C02-Domain-Rules.md`](../intent-and-change/C02-Domain-Rules.md) BR-07/BR-08; [`activity-op03-confirm.puml`](../diagrams/c02/activity-op03-confirm.puml), [`activity-op01-create.puml`](../diagrams/c02/activity-op01-create.puml), [`state.puml`](../diagrams/c02/state.puml), [`use-case.puml`](../diagrams/c02/use-case.puml) |
+| F2 — architektura a evidence | Pohledy C03 a evidence používají transakční outbox a samostatný dispatcher; starý `on_commit` popis je historická baseline. | [`C03-Architecture-Design.md`](../architecture-and-decisions/C03-Architecture-Design.md); [`design-sequence-confirm.puml`](../diagrams/c03/design-sequence-confirm.puml); [`static-architecture.puml`](../diagrams/c03/static-architecture.puml); [`dispatcher.py`](../../src/rezervace_divadlo/notification/dispatcher.py) |
+| F3 — DD a dispatcher | DD popisuje terminální přechod expirovaného lease do `FAILED`; dispatcher započítává úklidová selhání do `counts["failed"]`. | [`C05-Detailed-Design.md`](../architecture-and-decisions/C05-Detailed-Design.md) — stavový model a pseudokód; [`dispatcher.py`](../../src/rezervace_divadlo/notification/dispatcher.py); [`test_crash_on_last_attempt_becomes_failed_without_another_send`](../../src/rezervace_divadlo/notification/tests.py) |
+| C04 — kvalita a měření | Byl doplněn reprodukovatelný příkaz a testovací podklad pro lokální měření dvaceti souběžných pokusů. | [`measure_reservation_concurrency.py`](../../src/rezervace_divadlo/reservation/management/commands/measure_reservation_concurrency.py); [`tests_concurrency.py`](../../src/rezervace_divadlo/reservation/tests_concurrency.py) |
 | Confirm diagram | Zdroj a vyrenderovaný obrázek Confirm sekvence byly po architektonické opravě sjednoceny. | [`design-sequence-confirm.puml`](../diagrams/c03/design-sequence-confirm.puml) a [`design-sequence-confirm.png`](../diagrams/c03/design-sequence-confirm.png) |
 | Testy Confirm (C06 remaining gap) | Doplněny chybějící testy Confirm s neaktivním sedadlem a souběžného Confirm téže rezervace. | [`test_confirm_with_seat_deactivated_after_create_is_rejected`](../../src/rezervace_divadlo/reservation/tests.py); [`test_concurrent_confirm_has_one_winner_for_one_reservation`](../../src/rezervace_divadlo/reservation/tests_concurrency.py) |
 | Diagram OP-02 (zbývající položka C02) | Doplněn diagram aktivit Check Availability podle `check_availability`: validace intervalu, výběr sedadel, test překryvu `[start,end)`, blokující stavy. | [`activity-op02-availability.puml`](../diagrams/c02/activity-op02-availability.puml) a [`activity-op02-availability.png`](../diagrams/c02/activity-op02-availability.png) |
 
-Stav vypořádání:
+### Disposition status
 
 | Finding | Stav v reporting baseline | Zbývající akce |
 |---|---|---|
 | F1 | CLOSED pro aktuální reporting baseline. | `touch_reservation` je zachycen v use-case, stavovém, activity a ownership pohledu; implementace je v [`services.py`](../../src/rezervace_divadlo/reservation/services.py) a test obnovy v [`tests.py`](../../src/rezervace_divadlo/reservation/tests.py). |
-| F2 | CLOSED pro aktuální architekturu a evidenci. | Udržovat [`architecture-and-decisions/C03-Architecture-Design.md`](../architecture-and-decisions/C03-Architecture-Design.md), diagramy a [`dispatcher.py`](../../src/rezervace_divadlo/notification/dispatcher.py) synchronizované při dalších změnách. |
+| F2 | CLOSED pro aktuální architekturu a evidenci. | Udržovat [`C03-Architecture-Design.md`](../architecture-and-decisions/C03-Architecture-Design.md), diagramy a [`dispatcher.py`](../../src/rezervace_divadlo/notification/dispatcher.py) synchronizované při dalších změnách. |
 | F3 | CLOSED pro aktuální implementaci. | Zachovat [`test_crash_on_last_attempt_becomes_failed_without_another_send`](../../src/rezervace_divadlo/notification/tests.py) a při změně dispatcheru znovu ověřit kontrakt počitadla. |
 
 
-## A — Technické argumenty a evidence aktuální baseline
+## Part A — Technical arguments and evidence for the current baseline
 
 | Technický argument | Aktuální tvrzení | Evidence | Omezení |
 |---|---|---|---|
@@ -32,7 +34,7 @@ Stav vypořádání:
 | Souběh Confirm a neaktivní sedadlo | Dvě souběžná potvrzení téže rezervace skončí právě jedním úspěchem (druhé `invalid_state` / `busy`) a jednou aktivní alokací; Confirm s později deaktivovaným sedadlem je odmítnut a rezervace zůstane `DRAFT`. | `tests_concurrency.py`, `tests.py` (viz běh níže). | Souběh je ověřen dvěma vlákny nad SQLite (`transaction_mode = IMMEDIATE`), ne nad produkční databází. |
 | Aktuální verifikace | Aktuální větev má 50 testů (24 reservation + 2 concurrency + 24 notification); všechny prošly a `manage.py check` nehlásí chyby. | `python src/rezervace_divadlo/manage.py test notification reservation`; záznam běhu níže. | Nejsou plně ověřené migrace existujících dat, produkční recovery ani externí doručení. |
 
-### Ověřovací běh aktuální baseline
+### Verification run of the current baseline
 
 - Datum: 1. 11. 2026; větev `c08-verification` nad `ca2a9c5` (PR #18)
   + doplněné testy Confirm a diagram OP-02.
@@ -53,14 +55,14 @@ Celá sada byla spuštěna pětkrát po sobě se shodným výsledkem (souběžn�
 nejsou nestabilní). Varování `models.W042` vzniká pouze na Django 5.2;
 projekt cílí na Django 6 (Python ≥ 3.12), na kterém tento běh proveden nebyl.
 
-## B — Risk register aktuální baseline
+## Part B — Risk register for the current baseline
 
 Následující rizika jsou samostatná od historických findings F1–F3. Likelihood
 a impact používají stupnici 1–3; priorita je `L × I` podle matice C07/C08
 (1–2 LOW, 3–4 MEDIUM, 6–9 HIGH). Skutečné reziduální
 riziko je `NOT VERIFIED`, dokud není doložena účinnost opatření.
 
-### R-01 — Přenositelnost SQLite concurrency
+### R-01 — SQLite concurrency portability
 
 - **Kategorie:** Technická / výkonová
 - **Příčina → nejistá událost → důsledek:** SQLite serializuje zápisy; produkční
@@ -82,7 +84,7 @@ riziko je `NOT VERIFIED`, dokud není doložena účinnost opatření.
   vyhodnotit PostgreSQL či jinou strategii zamykání; review při CP1.
 - **Rozhodnutí:** Přijmout omezení pouze pro lokální baseline; vlastník HAH.
 
-### R-02 — Duplicity při at-least-once notifikacích
+### R-02 — Duplicates with at-least-once notifications
 
 - **Kategorie:** Integrace / spolehlivost
 - **Příčina → nejistá událost → důsledek:** Worker selže po přijetí zprávy
@@ -103,7 +105,7 @@ riziko je `NOT VERIFIED`, dokud není doložena účinnost opatření.
   idempotence; pozastavit doručování či provést reconciliaci podle ID.
 - **Rozhodnutí:** Přijmout dočasně do uzavření kontraktu receiveru; vlastník HAH.
 
-### R-03 — Dostupnost dispatcheru a expiry workeru
+### R-03 — Availability of the dispatcher and expiry worker
 
 - **Kategorie:** Provozní
 - **Příčina → nejistá událost → důsledek:** Dispatcher nebo expiry command
@@ -125,7 +127,7 @@ riziko je `NOT VERIFIED`, dokud není doložena účinnost opatření.
 - **Rozhodnutí:** Přijmout pouze pro development baseline; produkční provoz
   vyžaduje doplnění supervision evidence.
 
-### R-04 — Migrace existujících dat
+### R-04 — Migration of existing data
 
 - **Kategorie:** Data / migrace
 - **Příčina → nejistá událost → důsledek:** Migrace `0002` převádí staré

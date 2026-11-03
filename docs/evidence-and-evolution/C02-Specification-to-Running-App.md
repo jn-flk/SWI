@@ -1,9 +1,11 @@
-# C02 — Evidence: specifikace → běžící aplikace
+# C02 — Evidence: specification → running application
 
-## Přijatá baseline:
+← [Navigator](../NAVIGATOR.md) · [Traceability](../TRACEABILITY.md) · Related: [Domain rules](../intent-and-change/C02-Domain-Rules.md) · [States](../intent-and-change/C02-States-and-Transitions.md) · [Operations](../intent-and-change/C02-Operations-and-Requirements.md) · [Domain model](../architecture-and-decisions/C02-Domain-Model-and-Limitations.md)
+
+## Accepted baseline
 
 Výchozí specifikací je baseline v0.2 se schvalováním, popsaná v
-[intent-and-change/C02-Operations-and-Requirements.md](../intent-and-change/C02-Operations-and-Requirements.md), [intent-and-change/C02-States-and-Transitions.md](../intent-and-change/C02-States-and-Transitions.md), [intent-and-change/C02-Domain-Rules.md](../intent-and-change/C02-Domain-Rules.md)
+[C02-Operations-and-Requirements.md](../intent-and-change/C02-Operations-and-Requirements.md), [C02-States-and-Transitions.md](../intent-and-change/C02-States-and-Transitions.md), [C02-Domain-Rules.md](../intent-and-change/C02-Domain-Rules.md)
 a diagramech v `diagrams/c02/`. Pro implementaci byly uživatelem přijaty
 následující podmínky:
 
@@ -24,7 +26,7 @@ následující podmínky:
 Tento seznam zachycuje dohodnuté a implementované chování. Úplné schválení
 baseline týmem není v repozitáři explicitně doloženo.
 
-## Předvedené základní operace:
+## Demonstrated core operations
 
 V automatických testech byly přímo přes
 [reservation/services.py](../../src/rezervace_divadlo/reservation/services.py)
@@ -39,7 +41,7 @@ Dále byly provedeny OP-05 Approve Reservation, zamítnutí, obnova aktivity
 přes `touch_reservation` a expirace přes `expire_reservations`. Rozhraním
 pro reprodukci jsou testy a Django shell; API není součástí aplikace.
 
-## Skutečně provedené příklady ověření:
+## Executed verification examples
 
 Poslední skutečně provedený běh aktuální sady
 [reservation/tests.py](../../src/rezervace_divadlo/reservation/tests.py)
@@ -65,7 +67,7 @@ Příkazy z kořene repozitáře:
 | Oprávnění | Anonymní uživatel nevytvoří rezervaci, jiný vlastník ji nepotvrdí ani nezruší a běžný návštěvník nemůže schvalovat. |
 | Aktivita a expirace | Aktivita po čtyřech minutách obnoví držení do deváté minuty. Sekundu před deadline rezervace nevyprší, při deadline vyprší a opakovaná expirace nic nezmění. Vypršené držení nelze obnovit. |
 
-## Nalezený nesoulad a způsob vyřešení:
+## Found mismatches and their resolution
 
 - Původní model dovoloval pouze jedno sedadlo a neobsahoval stav ani lhůty.
   Doplněny byly stavy, vlastník, `hold_until`, `approval_deadline` a vazba
@@ -88,7 +90,7 @@ Příkazy z kořene repozitáře:
   `tests.py`. Aktuální evidence proto neuvádí API ani původní rozsáhlejší
   sadu jako současnou součást aplikace.
 
-## Shrnutí dopadu změny:
+## Change impact summary
 
 Schvalovací proces rozdělil Confirm na přímé potvrzení běžné rezervace
 nebo přechod do `PENDING_APPROVAL`. Přibyl aktér schvalovatele a samostatná
@@ -101,13 +103,13 @@ zachování historie při zrušení a Django ORM se SQLite zůstaly zachovány.
 Více sedadel a obnova držení rozšiřují původní model. Odstranění API změnilo
 způsob volání aplikace; business operace se nadále provádějí přes služby.
 
-## Zbývající předpoklad / neznámá:
+## Remaining assumptions / unknowns
 
 - Doplnit diagram aktivity OP-02 a časové podmínky v diagramech;
   explicitní schválení baseline v0.1/v0.2 týmem není doloženo.
   *(Stav C08: diagram OP-02 doplněn —
   [activity-op02-availability.puml](../diagrams/c02/activity-op02-availability.puml);
-  časové podmínky doplněny při vypořádání F1.)*
+  časové podmínky doplněny při vypořádání nálezu F1 z C06.)*
 - Aktuální jednoduché testy neověřují paralelní zápisy, výkon při
   20 souběžných požadavcích ani zachování dat při migraci existující databáze.
 - Notifikace používají pouze lokální logovací adaptér. Externí doručování,
