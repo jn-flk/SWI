@@ -21,12 +21,42 @@ Co konkrétně rezervujeme?
 
 ## Instalace a spuštění
 
+Vyžaduje Python 3.12+ (Django 6.1). Příkazy se spouští z kořene repozitáře.
+
+Linux / macOS:
+
 ```bash
 python3 -m venv venv
 source venv/bin/activate
+```
+
+Windows (PowerShell; v `cmd` použijte `venv\Scripts\activate.bat`):
+
+```powershell
+python3 -m venv venv
+venv\Scripts\Activate.ps1
+```
+
+Dál stejně na obou systémech:
+
+```bash
 pip install django
 python src/rezervace_divadlo/manage.py migrate
 python src/rezervace_divadlo/manage.py test notification reservation
+```
+
+Frontend s ukázkovými daty (přihlášení `demo` / `demo`) na http://127.0.0.1:8000/:
+
+```bash
+python src/rezervace_divadlo/manage.py seed_demo
+python src/rezervace_divadlo/manage.py runserver
+```
+
+Volitelně v dalším terminálu průběžná expirace držení a doručování notifikací:
+
+```bash
+python src/rezervace_divadlo/manage.py expire_reservations --watch
+python src/rezervace_divadlo/manage.py dispatch_notifications --watch
 ```
 
 ## CP1 – základní průchod aplikací
@@ -49,7 +79,7 @@ Volání aplikační služby (bez HTTP API):
 
 ### Rozšíření rezervace a pravidel
 
-C02 rozšiřuje původní rezervaci jednoho sedadla o skupinové rezervace, ruční schvalování a časově omezené držení sedadel. Jedna rezervace má vlastníka a obsahuje jedno nebo více sedadel. Doménová logika je v `src/rezervace_divadlo/reservation/services.py`; HTTP API není součástí aplikace.
+C02 rozšiřuje původní rezervaci jednoho sedadla o skupinové rezervace, ruční schvalování a časově omezené držení sedadel. Jedna rezervace má vlastníka a obsahuje jedno nebo více sedadel. Doménová logika je v `src/rezervace_divadlo/backend/reservation/services.py`; HTTP API není součástí aplikace.
 
 - Vytvoření rezervace atomicky ověří dostupnost a zablokuje všechna vybraná sedadla ve stavu `DRAFT`.
 - Nejvýše 10 sedadel lze potvrdit přímo. Více než 10 sedadel nebo celý sál vyžaduje schválení, i když má sál méně než 11 sedadel.
@@ -95,3 +125,12 @@ Zůstávají Django ORM, SQLite pro vývoj, intervaly `[start,end)` a pravidlo j
 Pro C03 zůstávají témata ověření souběžných rezervací při vyšší zátěži, plánování expirace a napojení notifikací. Podrobnosti jsou v [architektonických rozhodnutích](docs/architecture-and-decisions.md) a [evidenci vývoje](docs/evidence-and-evolution.md).
 
 Textová specifikace v `intent_and_change.md` a `operations.md` ještě obsahuje starší hranice schvalování. Přehled v tomto README vychází z diagramů, implementace a dohodnutého pravidla **více než 10 sedadel nebo celý sál**.
+
+## C08 – Frontend
+
+Serverově renderovaný frontend v Django Template Language. Projekt je rozdělen na
+`backend/` (Django konfigurace `config` a aplikace `reservation`, `notification`) a
+`frontend/` (`templates/` se sdíleným `base.html` a komponentami, `static/` s CSS a JS).
+Průchod: seznam představení → detail a termíny → výběr sedadel → kontaktní údaje →
+souhrn → potvrzení. Podrobnosti jsou v [architektonických rozhodnutích](docs/architecture-and-decisions.md#c08--frontend)
+a [evidenci](docs/evidence-and-evolution.md#c08--frontend-evidence).

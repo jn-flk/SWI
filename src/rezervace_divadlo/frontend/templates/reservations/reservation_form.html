@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Údaje rezervace{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/reservations.css' %}">{% endblock %}
+
+{% block content %}
+  <h1>Kontaktní údaje</h1>
+  <p class="hold">Sedadla jsou držena do {{ reservation.hold_until|date:"H:i" }}.</p>
+  <form method="post" class="form">
+    {% csrf_token %}
+    {{ form.as_div }}
+    <button type="submit" class="button">Pokračovat na souhrn</button>
+  </form>
+{% endblock %}

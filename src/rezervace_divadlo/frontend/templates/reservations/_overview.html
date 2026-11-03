@@ -1,0 +1,7 @@
+<dl class="overview">
+  <dt>Představení</dt><dd>{{ reservation.performance.play.title }}</dd>
+  <dt>Termín</dt><dd>{{ reservation.performance.start_at|date:"j. n. Y H:i" }}</dd>
+  <dt>Sál</dt><dd>{{ reservation.performance.hall.name }}</dd>
+  <dt>Sedadla</dt>
+  <dd>{% for seat in seats %}řada {{ seat.row }}, místo {{ seat.number }}{% if not forloop.last %}; {% endif %}{% endfor %}</dd>
+</dl>

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ performance.play.title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/performances.css' %}">{% endblock %}
+
+{% block content %}
+  <h1>{{ performance.play.title }}</h1>
+  <p>{{ performance.play.description }}</p>
+
+  <h2>Termíny</h2>
+  <ul class="dates">
+    {% for date in dates %}
+      <li class="dates__item{% if date.pk == performance.pk %} dates__item--current{% endif %}">
+        <span>{{ date.start_at|date:"j. n. Y H:i" }} · {{ date.hall.name }}</span>
+        <a class="button" href="{% url 'seat_selection' date.pk %}">Vybrat sedadla</a>
+      </li>
+    {% empty %}
+      <li>Žádné nadcházející termíny.</li>
+    {% endfor %}
+  </ul>
+{% endblock %}

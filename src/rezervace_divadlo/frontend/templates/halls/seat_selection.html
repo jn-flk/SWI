@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Výběr sedadel{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/halls.css' %}">{% endblock %}
+
+{% block content %}
+  <h1>{{ performance.play.title }}</h1>
+  <p class="meta">{{ performance.start_at|date:"j. n. Y H:i" }} · {{ performance.hall.name }}</p>
+
+  <form method="post" class="form" id="seat-form">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    {{ form.seats.errors }}
+    <div class="hall">
+      <div class="hall__stage">Jeviště</div>
+      {% for row, seats in rows %}
+        <div class="hall__row">
+          <span class="hall__row-label">{{ row }}</span>
+          {% for item in seats %}
+            <label class="seat{% if not item.available %} seat--unavailable{% elif item.selected %} seat--selected{% endif %}"
+                   title="Řada {{ row }}, sedadlo {{ item.seat.number }}">
+              <input type="checkbox" name="seats" value="{{ item.seat.pk }}"
+                     {% if not item.available %}disabled{% elif item.selected %}checked{% endif %}>
+              {{ item.seat.number }}
+            </label>
+          {% endfor %}
+        </div>
+      {% endfor %}
+    </div>
+    <ul class="legend">
+      <li><span class="seat"></span> volné</li>
+      <li><span class="seat seat--selected"></span> vybrané</li>
+      <li><span class="seat seat--unavailable"></span> nedostupné</li>
+    </ul>
+    <p>Vybráno: <strong id="selected-count">0</strong></p>
+    <button type="submit" class="button">Pokračovat</button>
+  </form>
+{% endblock %}
+
+{% block extra_js %}<script src="{% static 'js/seat_selection.js' %}"></script>{% endblock %}

@@ -1,0 +1,99 @@
+:root {
+  --color-bg: #faf8f5;
+  --color-surface: #ffffff;
+  --color-text: #222222;
+  --color-muted: #6b6b6b;
+  --color-accent: #8b1e3f;
+  --color-border: #ddd6cf;
+  --color-error: #b00020;
+  --color-success: #2e7d32;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  line-height: 1.5;
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+a { color: var(--color-accent); }
+
+.container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+main.container { padding-top: 24px; padding-bottom: 48px; }
+
+.site-header { background: var(--color-accent); color: #fff; }
+.site-header__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+.site-header__brand { color: #fff; font-weight: 700; font-size: 1.25rem; text-decoration: none; }
+
+.nav { display: flex; align-items: center; gap: 16px; }
+.nav a, .nav .link-button { color: #fff; }
+.nav form { margin: 0; }
+
+.link-button {
+  border: 0;
+  padding: 0;
+  background: none;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.site-footer {
+  padding: 16px 0;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+.meta { color: var(--color-muted); }
+
+.button {
+  display: inline-block;
+  padding: 8px 16px;
+  border: 0;
+  border-radius: 4px;
+  background: var(--color-accent);
+  color: #fff;
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.form { display: grid; gap: 12px; max-width: 480px; }
+.form > div { display: grid; gap: 4px; }
+.form .button { justify-self: start; }
+.form input[type="text"],
+.form input[type="email"],
+.form input[type="password"] {
+  padding: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font: inherit;
+}
+
+.errorlist { margin: 0; padding: 0; list-style: none; color: var(--color-error); }
+
+.message { padding: 8px 12px; border-radius: 4px; background: var(--color-surface); border-left: 4px solid var(--color-accent); }
+.message--error { border-color: var(--color-error); }
+.message--success { border-color: var(--color-success); }
+
+@media (max-width: 600px) {
+  h1 { font-size: 1.5rem; }
+  .button { width: 100%; text-align: center; }
+}

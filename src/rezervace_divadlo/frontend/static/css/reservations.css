@@ -1,0 +1,20 @@
+.overview {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 24px;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-surface);
+}
+.overview dt { color: var(--color-muted); }
+.overview dd { margin: 0; }
+
+.hold { color: var(--color-muted); }
+
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
+
+@media (max-width: 600px) {
+  .overview { grid-template-columns: 1fr; gap: 0; }
+  .overview dd { margin-bottom: 8px; }
+}

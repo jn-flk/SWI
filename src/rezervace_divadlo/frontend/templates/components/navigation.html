@@ -1,0 +1,12 @@
+<nav class="nav">
+  <a href="{% url 'performance_list' %}">Představení</a>
+  {% if user.is_authenticated %}
+    <span class="nav__user">{{ user.username }}</span>
+    <form method="post" action="{% url 'logout' %}">
+      {% csrf_token %}
+      <button type="submit" class="link-button">Odhlásit</button>
+    </form>
+  {% else %}
+    <a href="{% url 'login' %}">Přihlásit</a>
+  {% endif %}
+</nav>
