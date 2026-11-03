@@ -5,11 +5,14 @@
 {% block extra_css %}<link rel="stylesheet" href="{% static 'css/reservations.css' %}">{% endblock %}
 
 {% block content %}
+  {% include "components/progress.html" with step=2 %}
   <h1>Kontaktní údaje</h1>
-  <p class="hold">Sedadla jsou držena do {{ reservation.hold_until|date:"H:i" }}.</p>
+  {% include "components/hold_countdown.html" %}
   <form method="post" class="form">
     {% csrf_token %}
     {{ form.as_div }}
     <button type="submit" class="button">Pokračovat na souhrn</button>
   </form>
 {% endblock %}
+
+{% block extra_js %}<script src="{% static 'js/hold_countdown.js' %}"></script>{% endblock %}

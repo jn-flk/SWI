@@ -12,8 +12,13 @@
   <ul class="dates">
     {% for date in dates %}
       <li class="dates__item{% if date.pk == performance.pk %} dates__item--current{% endif %}">
-        <span>{{ date.start_at|date:"j. n. Y H:i" }} · {{ date.hall.name }}</span>
-        <a class="button" href="{% url 'seat_selection' date.pk %}">Vybrat sedadla</a>
+        <span>
+          {{ date.start_at|date:"j. n. Y H:i" }} · {{ date.hall.name }}<br>
+          {% include "components/free_seats.html" with free_seats=date.free_seats %}
+        </span>
+        {% if date.free_seats %}
+          <a class="button" href="{% url 'seat_selection' date.pk %}">Vybrat sedadla</a>
+        {% endif %}
       </li>
     {% empty %}
       <li>Žádné nadcházející termíny.</li>

@@ -11,6 +11,8 @@
 .overview dd { margin: 0; }
 
 .hold { color: var(--color-muted); }
+.hold__time,
+.hold--expired { color: var(--color-error); }
 
 .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
 

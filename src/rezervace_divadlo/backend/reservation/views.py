@@ -1,10 +1,13 @@
 """Frontend pages. Reservation writes go through services.py only."""
 
 from django.contrib import messages
+from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import UserCreationForm
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 
 from . import services
 from .forms import ContactForm, SeatSelectionForm
@@ -32,6 +35,13 @@ def _not_draft(request, reservation):
     return redirect("seat_selection", pk=reservation.performance_id)
 
 
+def _with_free_seats(performances):
+    performances = list(performances)
+    for performance in performances:
+        performance.free_seats = sum(services.check_availability(performance.pk).values())
+    return performances
+
+
 def _seat_rows(performance, availability, selected):
     rows = {}
     for seat in performance.hall.seats.order_by("row", "number"):
@@ -43,11 +53,26 @@ def _seat_rows(performance, availability, selected):
     return rows.items()
 
 
+def register(request):
+    next_url = request.POST.get("next") or request.GET.get("next", "")
+    if not url_has_allowed_host_and_scheme(
+        next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+    ):
+        next_url = ""
+    form = UserCreationForm(request.POST if request.method == "POST" else None)
+    if form.is_bound and form.is_valid():
+        login(request, form.save())
+        return redirect(next_url or "performance_list")
+    return render(request, "registration/register.html", {"form": form, "next": next_url})
+
+
 def performance_list(request):
     performances = Performance.objects.select_related("play", "hall").filter(
         start_at__gt=timezone.now()
     ).order_by("start_at")
-    return render(request, "performances/performance_list.html", {"performances": performances})
+    return render(request, "performances/performance_list.html", {
+        "performances": _with_free_seats(performances),
+    })
 
 
 def performance_detail(request, pk):
@@ -56,7 +81,7 @@ def performance_detail(request, pk):
         start_at__gt=timezone.now()
     ).order_by("start_at")
     return render(request, "performances/performance_detail.html", {
-        "performance": performance, "dates": dates,
+        "performance": performance, "dates": _with_free_seats(dates),
     })
 
 

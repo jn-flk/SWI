@@ -15,6 +15,9 @@
 .card h2 { margin: 0 0 4px; font-size: 1.25rem; }
 .card .meta { margin: 0; }
 
+.free-seats { color: var(--color-success); font-size: 0.875rem; font-weight: 600; }
+.free-seats--none { color: var(--color-error); }
+
 .dates { padding: 0; list-style: none; }
 .dates__item {
   display: flex;

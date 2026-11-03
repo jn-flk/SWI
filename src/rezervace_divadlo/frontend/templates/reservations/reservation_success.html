@@ -5,6 +5,7 @@
 {% block extra_css %}<link rel="stylesheet" href="{% static 'css/reservations.css' %}">{% endblock %}
 
 {% block content %}
+  {% include "components/progress.html" with step=4 %}
   {% if reservation.status == "CONFIRMED" %}
     <h1>Rezervace je potvrzena</h1>
   {% else %}

@@ -644,7 +644,7 @@ riziko je `NOT VERIFIED`, dokud není doložena účinnost opatření.
   obnovit backup a zastavit rollout; review před data-bearing deploymentem.
 - **Rozhodnutí:** Pro produkční rollout zatím nepřijmout; vlastník HAH.
 
-## C08 — Frontend Evidence
+## Frontend Evidence
 
 Nové view testy v [`tests_views.py`](../src/rezervace_divadlo/backend/reservation/tests_views.py)
 pokrývají logiku frontendu; doménová pravidla dál ověřují stávající testy služeb.
@@ -660,7 +660,13 @@ pokrývají logiku frontendu; doménová pravidla dál ověřují stávající t
 | `test_invalid_contact_form_shows_errors_and_keeps_draft` | Validace kontaktních údajů, rezervace zůstává `DRAFT`. |
 | `test_expired_hold_cannot_be_confirmed` | Po vypršení držení potvrzení selže a rezervace je `EXPIRED`. |
 | `test_other_users_reservation_is_not_found` | Cizí rezervace vrací 404. |
+| `test_registration_creates_user_logs_in_and_follows_next` | Registrace vytvoří uživatele, přihlásí ho a vrátí na `next`. |
+| `test_invalid_registration_shows_errors_without_creating_user` | Neshodná hesla zobrazí chybu, uživatel nevznikne. |
+| `test_external_next_is_ignored` | `next` na cizí doménu se ignoruje (žádný open redirect). |
+| `test_free_seat_count_excludes_blocked_and_inactive_seats` | Počet volných míst v seznamu i detailu nezahrnuje blokovaná a neaktivní sedadla. |
+| `test_reservation_step_shows_progress_and_hold_countdown` | Krok rezervace zvýrazní aktuální krok a předá odpočtu `hold_until`. |
+| `test_submitting_contact_details_renews_hold` | Odeslání údajů je aktivita podle C02 a prodlouží `hold_until`. |
 
 Výsledek: `python src/rezervace_divadlo/manage.py test notification reservation` →
-59 testů (50 stávajících + 9 nových), OK. Ručně prošlý flow 1–8 přes `seed_demo` a
-`runserver` na desktopu i v mobilním viewportu (375 px).
+65 testů (50 stávajících + 15 nových), OK. Ručně prošlý flow 1–8 i registrace přes
+`seed_demo` a `runserver` na desktopu i v mobilním viewportu (375 px).

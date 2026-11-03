@@ -10,6 +10,7 @@
       <li class="card">
         <h2><a href="{% url 'performance_detail' performance.pk %}">{{ performance.play.title }}</a></h2>
         <p class="meta">{{ performance.start_at|date:"j. n. Y H:i" }} · {{ performance.hall.name }}</p>
+        {% include "components/free_seats.html" with free_seats=performance.free_seats %}
       </li>
     {% empty %}
       <li>Žádná nadcházející představení.</li>

@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -31,6 +32,23 @@ class FrontendTests(ReservationFixture, TestCase):
             self.assertTemplateUsed(response, template)
         self.assertContains(response, "Hamlet")
         self.assertNotContains(response, "Minulá hra")
+
+    def test_free_seat_count_excludes_blocked_and_inactive_seats(self):
+        self.create(2)
+        self.seats[2].is_active = False
+        self.seats[2].save()
+        for url in (reverse("performance_list"),
+                    reverse("performance_detail", args=[self.performance.pk])):
+            with self.subTest(url=url):
+                self.assertContains(self.client.get(url), "17 volných míst")
+
+    def test_reservation_step_shows_progress_and_hold_countdown(self):
+        reservation = self.create(1)
+        response = self.client.get(self.url("reservation_form", reservation))
+        self.assertContains(response, 'aria-current="step">Údaje')
+        self.assertContains(
+            response, f'data-hold-until="{int(reservation.hold_until.timestamp())}"'
+        )
 
     def test_seat_selection_requires_login(self):
         self.client.logout()
@@ -95,6 +113,18 @@ class FrontendTests(ReservationFixture, TestCase):
         reservation.refresh_from_db()
         self.assertEqual(reservation.status, Reservation.Status.DRAFT)
 
+    def test_submitting_contact_details_renews_hold(self):
+        reservation = create_reservation(
+            self.user, self.performance.pk, [self.seats[0].pk],
+            now=timezone.now() - timedelta(minutes=2),
+        )
+        hold_until = reservation.hold_until
+        self.client.post(self.url("reservation_form", reservation), {
+            "first_name": "Jan", "last_name": "Novák", "email": "jan@example.com",
+        })
+        reservation.refresh_from_db()
+        self.assertGreater(reservation.hold_until, hold_until)
+
     def test_expired_hold_cannot_be_confirmed(self):
         reservation = create_reservation(
             self.user, self.performance.pk, [self.seats[0].pk],
@@ -111,3 +141,29 @@ class FrontendTests(ReservationFixture, TestCase):
         for name in ("reservation_form", "reservation_summary", "reservation_success"):
             with self.subTest(name=name):
                 self.assertEqual(self.client.get(self.url(name, reservation)).status_code, 404)
+
+
+class RegistrationTests(TestCase):
+    url = reverse("register")
+    password = "Divadlo-2026-heslo"
+
+    def register(self, **data):
+        return self.client.post(self.url, {
+            "username": "novak", "password1": self.password, "password2": self.password, **data,
+        })
+
+    def test_registration_creates_user_logs_in_and_follows_next(self):
+        response = self.register(next="/performances/1/seats/")
+        self.assertRedirects(response, "/performances/1/seats/", fetch_redirect_response=False)
+        user = get_user_model().objects.get(username="novak")
+        self.assertEqual(int(self.client.session["_auth_user_id"]), user.pk)
+
+    def test_invalid_registration_shows_errors_without_creating_user(self):
+        response = self.register(password2="jine-heslo")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("password2", response.context["form"].errors)
+        self.assertFalse(get_user_model().objects.exists())
+
+    def test_external_next_is_ignored(self):
+        response = self.register(next="https://example.com/")
+        self.assertRedirects(response, reverse("performance_list"))

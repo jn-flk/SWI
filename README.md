@@ -45,7 +45,7 @@ python src/rezervace_divadlo/manage.py migrate
 python src/rezervace_divadlo/manage.py test notification reservation
 ```
 
-Frontend s ukázkovými daty (přihlášení `demo` / `demo`) na http://127.0.0.1:8000/:
+Frontend s ukázkovými daty na http://127.0.0.1:8000/ (přihlášení `demo` / `demo`, nebo nový účet přes Registraci):
 
 ```bash
 python src/rezervace_divadlo/manage.py seed_demo

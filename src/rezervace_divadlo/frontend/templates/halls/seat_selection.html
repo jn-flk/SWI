@@ -5,6 +5,7 @@
 {% block extra_css %}<link rel="stylesheet" href="{% static 'css/halls.css' %}">{% endblock %}
 
 {% block content %}
+  {% include "components/progress.html" with step=1 %}
   <h1>{{ performance.play.title }}</h1>
   <p class="meta">{{ performance.start_at|date:"j. n. Y H:i" }} · {{ performance.hall.name }}</p>
 

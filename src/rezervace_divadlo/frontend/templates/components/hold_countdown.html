@@ -1,0 +1,5 @@
+<p class="hold" role="timer" aria-live="off"
+   data-hold-until="{{ reservation.hold_until|date:'U' }}" data-now="{% now 'U' %}"
+   data-expired-url="{% url 'seat_selection' reservation.performance_id %}">
+  Sedadla jsou držena do <strong class="hold__time">{{ reservation.hold_until|date:"H:i" }}</strong>.
+</p>
