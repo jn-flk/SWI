@@ -651,7 +651,7 @@ pokrývají logiku frontendu; doménová pravidla dál ověřují stávající t
 
 | Test | Co ověřuje |
 |---|---|
-| `test_list_shows_only_upcoming_performances_in_shared_layout` | Seznam jen budoucích představení, sdílený `base.html`, header a footer. |
+| `test_list_shows_plays_with_upcoming_dates_in_shared_layout` | Úvodní stránka ukazuje jen hry s budoucími termíny (počítá jen budoucí), sdílený `base.html`, header a footer. |
 | `test_seat_selection_requires_login` | Výběr sedadel přesměruje nepřihlášeného na login. |
 | `test_blocked_and_inactive_seats_are_shown_unavailable` | Vizualizace dostupnosti: blokované i neaktivní sedadlo je nedostupné. |
 | `test_unavailable_seat_cannot_be_reserved` | Odeslání nedostupného sedadla skončí chybou formuláře, rezervace nevznikne. |
@@ -663,7 +663,7 @@ pokrývají logiku frontendu; doménová pravidla dál ověřují stávající t
 | `test_registration_creates_user_logs_in_and_follows_next` | Registrace vytvoří uživatele, přihlásí ho a vrátí na `next`. |
 | `test_invalid_registration_shows_errors_without_creating_user` | Neshodná hesla zobrazí chybu, uživatel nevznikne. |
 | `test_external_next_is_ignored` | `next` na cizí doménu se ignoruje (žádný open redirect). |
-| `test_free_seat_count_excludes_blocked_and_inactive_seats` | Počet volných míst v seznamu i detailu nezahrnuje blokovaná a neaktivní sedadla. |
+| `test_play_detail_lists_dates_with_free_seats` | Detail hry vypíše termíny s odkazem na výběr sedadel; počet volných míst nezahrnuje blokovaná a neaktivní sedadla. |
 | `test_reservation_step_shows_progress_and_hold_countdown` | Krok rezervace zvýrazní aktuální krok a předá odpočtu `hold_until`. |
 | `test_submitting_contact_details_renews_hold` | Odeslání údajů je aktivita podle C02 a prodlouží `hold_until`. |
 

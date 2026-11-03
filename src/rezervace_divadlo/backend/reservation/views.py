@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
+from django.db.models import Count, Min
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -11,7 +12,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 
 from . import services
 from .forms import ContactForm, SeatSelectionForm
-from .models import Performance, Reservation
+from .models import Performance, Play, Reservation
 from .services import ReservationError
 
 Status = Reservation.Status
@@ -62,26 +63,24 @@ def register(request):
     form = UserCreationForm(request.POST if request.method == "POST" else None)
     if form.is_bound and form.is_valid():
         login(request, form.save())
-        return redirect(next_url or "performance_list")
+        return redirect(next_url or "play_list")
     return render(request, "registration/register.html", {"form": form, "next": next_url})
 
 
-def performance_list(request):
-    performances = Performance.objects.select_related("play", "hall").filter(
-        start_at__gt=timezone.now()
-    ).order_by("start_at")
-    return render(request, "performances/performance_list.html", {
-        "performances": _with_free_seats(performances),
-    })
+def play_list(request):
+    plays = Play.objects.filter(performances__start_at__gt=timezone.now()).annotate(
+        date_count=Count("performances"), next_start=Min("performances__start_at"),
+    ).order_by("next_start")
+    return render(request, "plays/play_list.html", {"plays": plays})
 
 
-def performance_detail(request, pk):
-    performance = _performance(pk)
-    dates = performance.play.performances.select_related("hall").filter(
+def play_detail(request, pk):
+    play = get_object_or_404(Play, pk=pk)
+    dates = play.performances.select_related("hall").filter(
         start_at__gt=timezone.now()
     ).order_by("start_at")
-    return render(request, "performances/performance_detail.html", {
-        "performance": performance, "dates": _with_free_seats(dates),
+    return render(request, "plays/play_detail.html", {
+        "play": play, "dates": _with_free_seats(dates),
     })
 
 

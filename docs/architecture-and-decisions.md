@@ -16,7 +16,7 @@ manage.py                  # přidá backend/ do sys.path
 backend/config/            # settings, urls, wsgi, asgi
 backend/reservation/       # lifecycle rezervace + views, forms, urls frontendu
 backend/notification/      # outbox/delivery
-frontend/templates/        # DTL šablony (base.html, components/, performances/, halls/, reservations/)
+frontend/templates/        # DTL šablony (base.html, components/, plays/, halls/, reservations/)
 frontend/static/           # css/, js/
 ```
 
@@ -579,8 +579,8 @@ Views jsou v [`reservation/views.py`](../src/rezervace_divadlo/backend/reservati
 
 | Krok | URL | Šablona | Služba |
 |---|---|---|---|
-| 1 Seznam představení | `/` | `performances/performance_list.html` | – |
-| 2–3 Detail a výběr termínu | `/performances/<id>/` | `performances/performance_detail.html` | – |
+| 1 Seznam her | `/` | `plays/play_list.html` | – |
+| 2–3 Detail hry a výběr termínu | `/plays/<id>/` | `plays/play_detail.html` | – |
 | 4–5 Sál a výběr sedadel | `/performances/<id>/seats/` | `halls/seat_selection.html` | `check_availability`, `create_reservation` |
 | 6 Kontaktní údaje | `/reservations/<id>/form/` | `reservations/reservation_form.html` | `touch_reservation` |
 | 7 Souhrn | `/reservations/<id>/summary/` | `reservations/reservation_summary.html` | `confirm_reservation` |
@@ -589,7 +589,7 @@ Views jsou v [`reservation/views.py`](../src/rezervace_divadlo/backend/reservati
 
 Všechny stránky dědí `base.html` (`header.html` + `navigation.html`, `footer.html`).
 Kroky 4–8 sdílí `components/progress.html` (ukazatel postupu), kroky 6–7
-`components/hold_countdown.html` (odpočet držení) a seznam s detailem
+`components/hold_countdown.html` (odpočet držení) a detail hry
 `components/free_seats.html` (počet volných míst).
 
 ### Rozhodnutí
@@ -602,7 +602,8 @@ Kroky 4–8 sdílí `components/progress.html` (ukazatel postupu), kroky 6–7
 | Přihlášení a registrace přes `django.contrib.auth` | Vestavěné `LoginView` a `UserCreationForm` (validace hesel z `AUTH_PASSWORD_VALIDATORS`); po registraci je uživatel přihlášen a vrácen na `next`, pokud vede na stejný host. |
 | Sedadla se blokují už po výběru (`DRAFT`) | Využívá existující držení 5 minut, takže sedadlo nelze ztratit během vyplňování. |
 | Odeslání údajů je aktivita (`touch_reservation`) | Podle C02 aktivita prodlužuje držení: každé odeslání kontaktních údajů nastaví `hold_until` na 5 minut od teď (nejdéle do začátku představení); vypršené držení se neobnoví. |
+| Úvodní stránka seskupuje termíny podle hry | Návštěvník nejdřív vybírá hru, termíny s volnými místy vidí až v detailu hry. |
 | Počet volných míst přes `check_availability` | Stejné pravidlo blokování jako při výběru sedadel; jeden dotaz na termín stačí pro malý počet představení. |
 | Odpočet držení počítá se serverovým časem | Šablona předá `hold_until` i aktuální serverový čas, takže nevadí špatné hodiny klienta. Po vypršení JS zablokuje odeslání; rozhoduje ale služba. |
 | Nedostupné sedadlo nelze rezervovat na třech úrovních | Zobrazení (`disabled`), validace formuláře (volby jen z dostupných sedadel), služba + DB constraint při souběhu. |
-| Rozsah | Implementován pouze flow 1–8; detail/zrušení rezervace a stránky her/sálů nejsou součástí. |
+| Rozsah | Implementován pouze flow 1–8; detail/zrušení rezervace a stránky sálů nejsou součástí. |

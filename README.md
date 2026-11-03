@@ -131,6 +131,6 @@ Textová specifikace v `intent_and_change.md` a `operations.md` ještě obsahuje
 Serverově renderovaný frontend v Django Template Language. Projekt je rozdělen na
 `backend/` (Django konfigurace `config` a aplikace `reservation`, `notification`) a
 `frontend/` (`templates/` se sdíleným `base.html` a komponentami, `static/` s CSS a JS).
-Průchod: seznam představení → detail a termíny → výběr sedadel → kontaktní údaje →
+Průchod: seznam her → termíny hry → výběr sedadel → kontaktní údaje →
 souhrn → potvrzení. Podrobnosti jsou v [architektonických rozhodnutích](docs/architecture-and-decisions.md#c08--frontend)
 a [evidenci](docs/evidence-and-evolution.md#c08--frontend-evidence).

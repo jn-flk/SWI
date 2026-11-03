@@ -123,8 +123,8 @@ STATIC_URL = 'static/'
 STATICFILES_DIRS = [FRONTEND_DIR / 'static']
 
 LOGIN_URL = 'login'
-LOGIN_REDIRECT_URL = 'performance_list'
-LOGOUT_REDIRECT_URL = 'performance_list'
+LOGIN_REDIRECT_URL = 'play_list'
+LOGOUT_REDIRECT_URL = 'play_list'
 
 
 # Email

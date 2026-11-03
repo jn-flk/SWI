@@ -1,17 +1,17 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}{{ performance.play.title }}{% endblock %}
-{% block extra_css %}<link rel="stylesheet" href="{% static 'css/performances.css' %}">{% endblock %}
+{% block title %}{{ play.title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/plays.css' %}">{% endblock %}
 
 {% block content %}
-  <h1>{{ performance.play.title }}</h1>
-  <p>{{ performance.play.description }}</p>
+  <h1>{{ play.title }}</h1>
+  <p>{{ play.description }}</p>
 
   <h2>Termíny</h2>
   <ul class="dates">
     {% for date in dates %}
-      <li class="dates__item{% if date.pk == performance.pk %} dates__item--current{% endif %}">
+      <li class="dates__item">
         <span>
           {{ date.start_at|date:"j. n. Y H:i" }} · {{ date.hall.name }}<br>
           {% include "components/free_seats.html" with free_seats=date.free_seats %}

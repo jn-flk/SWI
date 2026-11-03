@@ -22,25 +22,27 @@ class FrontendTests(ReservationFixture, TestCase):
     def url(self, name, reservation):
         return reverse(name, args=[reservation.pk])
 
-    def test_list_shows_only_upcoming_performances_in_shared_layout(self):
+    def test_list_shows_plays_with_upcoming_dates_in_shared_layout(self):
         past_play = Play.objects.create(title="Minulá hra", duration=timedelta(hours=1))
-        Performance.objects.create(
-            hall=self.hall, play=past_play, start_at=self.now - timedelta(days=1)
-        )
-        response = self.client.get(reverse("performance_list"))
+        for play, days in ((past_play, -1), (self.play, -1), (self.play, 5)):
+            Performance.objects.create(
+                hall=self.hall, play=play, start_at=self.now + timedelta(days=days)
+            )
+        response = self.client.get(reverse("play_list"))
         for template in ("base.html", "components/header.html", "components/footer.html"):
             self.assertTemplateUsed(response, template)
-        self.assertContains(response, "Hamlet")
+        self.assertEqual(list(response.context["plays"]), [self.play])
+        self.assertContains(response, "2 termíny")
         self.assertNotContains(response, "Minulá hra")
 
-    def test_free_seat_count_excludes_blocked_and_inactive_seats(self):
+    def test_play_detail_lists_dates_with_free_seats(self):
         self.create(2)
         self.seats[2].is_active = False
         self.seats[2].save()
-        for url in (reverse("performance_list"),
-                    reverse("performance_detail", args=[self.performance.pk])):
-            with self.subTest(url=url):
-                self.assertContains(self.client.get(url), "17 volných míst")
+        response = self.client.get(reverse("play_detail", args=[self.play.pk]))
+        self.assertEqual(list(response.context["dates"]), [self.performance])
+        self.assertContains(response, "17 volných míst")
+        self.assertContains(response, self.seats_url)
 
     def test_reservation_step_shows_progress_and_hold_countdown(self):
         reservation = self.create(1)
@@ -166,4 +168,4 @@ class RegistrationTests(TestCase):
 
     def test_external_next_is_ignored(self):
         response = self.register(next="https://example.com/")
-        self.assertRedirects(response, reverse("performance_list"))
+        self.assertRedirects(response, reverse("play_list"))
