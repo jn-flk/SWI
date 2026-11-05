@@ -5,6 +5,8 @@
 
 **Repozitář:** https://github.com/jn-flk/SWI
 
+**Dokumentace:** [Navigátor dokumentace](docs/NAVIGATOR.md) — rozcestník všech dokumentů, diagramů a klíčových souborů kódu.
+
 
 ## Doména rezervací
 Co konkrétně rezervujeme?
@@ -17,7 +19,7 @@ Co konkrétně rezervujeme?
 - Společné pravidlo – stejné sedadlo nesmí být současně blokováno více aktivními rezervacemi pro stejné představení
 - Hranice systému – služba oznámení (Notification Service)
 
-Úplný popis domény je v [dokumentu o záměru a změnách](docs/intent_and_change.md).
+Úplný popis domény je v [dokumentu o záměru a změnách](docs/intent-and-change/).
 
 ## Instalace a spuštění
 
@@ -92,7 +94,7 @@ C02 rozšiřuje původní rezervaci jednoho sedadla o skupinové rezervace, ruč
 
 `DRAFT`, `PENDING_APPROVAL` a `CONFIRMED` blokují sedadla. Přechod do `CANCELLED`, `REJECTED` nebo `EXPIRED` sedadla uvolní a zachová historii rezervace. Potvrzení ani schválení neopakují kontrolu kolize, protože sedadla jsou blokována od vytvoření.
 
-Služby pokrývají vytvoření, zjištění dostupnosti, potvrzení, zrušení, schválení či zamítnutí, obnovení držení a expiraci. Diagram případů užití přidává schvalovatele a systémový časovač; stavový diagram a diagramy aktivit popisují nové přechody a uvolnění sedadel. Zdroje i obrázky jsou v [docs/c02-diagrams](docs/c02-diagrams/).
+Služby pokrývají vytvoření, zjištění dostupnosti, potvrzení, zrušení, schválení či zamítnutí, obnovení držení a expiraci. Diagram případů užití přidává schvalovatele a systémový časovač; stavový diagram a diagramy aktivit popisují nové přechody a uvolnění sedadel. Zdroje i obrázky jsou v [docs/diagrams/c02](docs/diagrams/c02/).
 
 Expiraci lze zpracovat příkazem Django:
 
@@ -122,9 +124,9 @@ neprokazují chování při skutečném souběhu více databázových spojení.
 
 Zůstávají Django ORM, SQLite pro vývoj, intervaly `[start,end)` a pravidlo jediné aktivní rezervace sedadla pro dané představení. Datový model přidává vazbu `ReservationSeat`, stav, vlastníka a časové limity. Transakce a databázová omezení chrání aktivní alokace; změny schématu obsahuje migrace `0002`.
 
-Pro C03 zůstávají témata ověření souběžných rezervací při vyšší zátěži, plánování expirace a napojení notifikací. Podrobnosti jsou v [architektonických rozhodnutích](docs/architecture-and-decisions.md) a [evidenci vývoje](docs/evidence-and-evolution.md).
+Pro C03 zůstávají témata ověření souběžných rezervací při vyšší zátěži, plánování expirace a napojení notifikací. Podrobnosti jsou v [architektonických rozhodnutích](docs/architecture-and-decisions/) a [evidenci vývoje](docs/evidence-and-evolution/).
 
-Textová specifikace v `intent_and_change.md` a `operations.md` ještě obsahuje starší hranice schvalování. Přehled v tomto README vychází z diagramů, implementace a dohodnutého pravidla **více než 10 sedadel nebo celý sál**.
+Textová specifikace v `docs/intent-and-change/` ještě obsahuje starší hranice schvalování. Přehled v tomto README vychází z diagramů, implementace a dohodnutého pravidla **více než 10 sedadel nebo celý sál**.
 
 ## C08 – Frontend
 

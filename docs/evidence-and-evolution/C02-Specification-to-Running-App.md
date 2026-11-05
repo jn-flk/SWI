@@ -1,0 +1,119 @@
+# C02 — Evidence: specification → running application
+
+← [Navigator](../NAVIGATOR.md) · [Traceability](../TRACEABILITY.md) · Related: [Domain rules](../intent-and-change/C02-Domain-Rules.md) · [States](../intent-and-change/C02-States-and-Transitions.md) · [Operations](../intent-and-change/C02-Operations-and-Requirements.md) · [Domain model](../architecture-and-decisions/C02-Domain-Model-and-Limitations.md)
+
+## Accepted baseline
+
+Výchozí specifikací je baseline v0.2 se schvalováním, popsaná v
+[C02-Operations-and-Requirements.md](../intent-and-change/C02-Operations-and-Requirements.md), [C02-States-and-Transitions.md](../intent-and-change/C02-States-and-Transitions.md), [C02-Domain-Rules.md](../intent-and-change/C02-Domain-Rules.md)
+a diagramech v `diagrams/c02/`. Pro implementaci byly uživatelem přijaty
+následující podmínky:
+
+- Jedna rezervace obsahuje jedno nebo více sedadel pro konkrétní představení.
+- Create vytvoří `DRAFT` a atomicky zablokuje všechna vybraná sedadla.
+- Nejvýše 10 sedadel se potvrdí přímo; více než 10 sedadel nebo celý sál
+  vyžaduje `PENDING_APPROVAL` a rozhodnutí oprávněného schvalovatele.
+- Hromadná rezervace nebo celý sál musí mít alespoň 24 hodin do začátku
+  při vytvoření i při odeslání ke schválení. Schvalovací lhůta je 24 hodin.
+- Vytvoření a potvrzení rezervace jsou odmítnuty při 15 minutách nebo méně
+  do začátku. Platné držení trvá pět minut od poslední zaznamenané aktivity.
+- Cancel je povolen před začátkem. Opakované zrušení již `CANCELLED`
+  rezervace oprávněným aktérem je idempotentní.
+- Confirm ani Approve znovu nekontrolují kolizi; zachovávají blokování
+  vzniklé při Create. `CANCELLED`, `REJECTED` a `EXPIRED` sedadla uvolňují
+  a záznam rezervace i její sedadla zůstávají v historii.
+
+Tento seznam zachycuje dohodnuté a implementované chování. Úplné schválení
+baseline týmem není v repozitáři explicitně doloženo.
+
+## Demonstrated core operations
+
+V automatických testech byly přímo přes
+[reservation/services.py](../../src/rezervace_divadlo/reservation/services.py)
+provedeny všechny čtyři základní operace:
+
+- OP-01 Create Reservation — vytvoření a uložení rezervace více sedadel.
+- OP-02 Check Availability — dostupnost podle blokování a překryvu intervalů.
+- OP-03 Confirm Reservation — přímé potvrzení nebo odeslání ke schválení.
+- OP-04 Cancel Reservation — zrušení, uvolnění sedadel a zachování historie.
+
+Dále byly provedeny OP-05 Approve Reservation, zamítnutí, obnova aktivity
+přes `touch_reservation` a expirace přes `expire_reservations`. Rozhraním
+pro reprodukci jsou testy a Django shell; API není součástí aplikace.
+
+## Executed verification examples
+
+Poslední skutečně provedený běh aktuální sady
+[reservation/tests.py](../../src/rezervace_divadlo/reservation/tests.py)
+skončil výsledkem **20 testů, všechny prošly**. Django systémová kontrola
+byla bez chyb. Testy používají izolovanou SQLite databázi a řízené hodnoty
+času, takže není potřeba čekat na skutečné timeouty.
+
+Příkazy z kořene repozitáře:
+
+```powershell
+.\.venv\Scripts\python.exe .\src\rezervace_divadlo\manage.py test reservation --verbosity 2
+.\.venv\Scripts\python.exe .\src\rezervace_divadlo\manage.py check
+```
+
+| Oblast | Skutečně ověřené příklady |
+|---|---|
+| Create a persistence | Tři sedadla vytvoří jednu uloženou `DRAFT`; prázdný, duplicitní či neznámý výběr, jiný sál a neaktivní sedadlo jsou odmítnuty. Jedno obsazené sedadlo odmítne celou skupinu bez částečné rezervace. |
+| Availability | Blokované sedadlo je nedostupné a po zrušení či zamítnutí dostupné. Dotyk hranic intervalů je dostupný, překryv nedostupný; nulový interval je odmítnut. |
+| Confirm | 10 sedadel přejde do `CONFIRMED`, 11 do `PENDING_APPROVAL`. Celý sál se dvěma sedadly vyžaduje schválení. Opakované potvrzení je odmítnuto; pokus přesně při konci držení uloží `EXPIRED`. |
+| Cancel | Zrušení zachová historii, uvolní sedadla a umožní novou rezervaci. První zrušení přesně při začátku je odmítnuto; opakované zrušení již `CANCELLED` rezervace uspěje i při začátku. |
+| Approve / Reject | Oprávněný schvalovatel uspěje jednu sekundu před deadline. Při deadline žádost přejde do `EXPIRED`. Zamítnutí uvolní sedadla a další rozhodnutí je odmítnuto. |
+| Časové hranice | Create při 15 minutách do začátku je odmítnuto, při 15 minutách a jedné sekundě uspěje. Hromadné Create při 24 hodinách uspěje, o sekundu později je odmítnuto. Podmínka 24 hodin se kontroluje také při Confirm. |
+| Oprávnění | Anonymní uživatel nevytvoří rezervaci, jiný vlastník ji nepotvrdí ani nezruší a běžný návštěvník nemůže schvalovat. |
+| Aktivita a expirace | Aktivita po čtyřech minutách obnoví držení do deváté minuty. Sekundu před deadline rezervace nevyprší, při deadline vyprší a opakovaná expirace nic nezmění. Vypršené držení nelze obnovit. |
+
+## Found mismatches and their resolution
+
+- Původní model dovoloval pouze jedno sedadlo a neobsahoval stav ani lhůty.
+  Doplněny byly stavy, vlastník, `hold_until`, `approval_deadline` a vazba
+  `ReservationSeat`. Migrace `0002` převádí původní rezervace na potvrzené
+  alokace; aktuální sada samostatně netestuje převod existujících dat.
+- Původní bezpodmínečný constraint znemožňoval opětovnou rezervaci sedadla
+  při zachování starého záznamu. Byl nahrazen unikátním omezením pouze
+  aktivních alokací; uvolnění a opětovná rezervace jsou ověřeny testem.
+- Opakované Cancel a kontrola kolize při Confirm/Approve se lišily mezi
+  textem a diagramy. Text i implementace nyní používají idempotentní
+  Cancel a blokování od Create bez opakované kontroly kolize.
+- Hranice schvalování byla sjednocena na nejvýše 10 sedadel pro přímé
+  potvrzení a více než 10 sedadel nebo celý sál pro `PENDING_APPROVAL`.
+  Implementace, testy, `intent-and-change/C02-Domain-Rules.md` i OP-03 v `intent-and-change/C02-Operations-and-Requirements.md`
+  nyní používají stejnou hranici.
+- BR-08 je v souladu s implementací konkretizován jako minimální předstih
+  24 hodin při vytvoření i potvrzení hromadné rezervace. Schvalovací lhůta
+  je rovněž 24 hodin.
+- Na žádost uživatele bylo odstraněno API a testování sjednoceno do
+  `tests.py`. Aktuální evidence proto neuvádí API ani původní rozsáhlejší
+  sadu jako současnou součást aplikace.
+
+## Change impact summary
+
+Schvalovací proces rozdělil Confirm na přímé potvrzení běžné rezervace
+nebo přechod do `PENDING_APPROVAL`. Přibyl aktér schvalovatele a samostatná
+operace Approve/Reject. Čekající žádost dále blokuje všechna sedadla;
+zamítnutí, zrušení nebo vypršení je uvolní. Změna vyžaduje uložený stav,
+časové lhůty, oprávnění a atomické přechody.
+
+Intervalová sémantika `[start,end)`, exkluzivita sedadla pro představení,
+zachování historie při zrušení a Django ORM se SQLite zůstaly zachovány.
+Více sedadel a obnova držení rozšiřují původní model. Odstranění API změnilo
+způsob volání aplikace; business operace se nadále provádějí přes služby.
+
+## Remaining assumptions / unknowns
+
+- Doplnit diagram aktivity OP-02 a časové podmínky v diagramech;
+  explicitní schválení baseline v0.1/v0.2 týmem není doloženo.
+  *(Stav C08: diagram OP-02 doplněn —
+  [activity-op02-availability.puml](../diagrams/c02/activity-op02-availability.puml);
+  časové podmínky doplněny při vypořádání nálezu F1 z C06.)*
+- Aktuální jednoduché testy neověřují paralelní zápisy, výkon při
+  20 souběžných požadavcích ani zachování dat při migraci existující databáze.
+- Notifikace používají pouze lokální logovací adaptér. Externí doručování,
+  jeho selhání a opakování nejsou ověřené.
+- Pravidelné ukládání stavu `EXPIRED` vyžaduje spuštěný příkaz
+  `python manage.py expire_reservations --watch`. Jeho nepřetržitý provoz
+  a zotavení po výpadku nejsou součástí současné jednoduché testovací sady.
