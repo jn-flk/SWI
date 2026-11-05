@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ play.title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/plays.css' %}">{% endblock %}
+
+{% block content %}
+  <h1>{{ play.title }}</h1>
+  <p>{{ play.description }}</p>
+
+  <h2>Termíny</h2>
+  <ul class="dates">
+    {% for date in dates %}
+      <li class="dates__item">
+        <span>
+          {{ date.start_at|date:"j. n. Y H:i" }} · {{ date.hall.name }}<br>
+          {% include "components/free_seats.html" with free_seats=date.free_seats %}
+        </span>
+        {% if date.free_seats %}
+          <a class="button" href="{% url 'seat_selection' date.pk %}">Vybrat sedadla</a>
+        {% endif %}
+      </li>
+    {% empty %}
+      <li>Žádné nadcházející termíny.</li>
+    {% endfor %}
+  </ul>
+{% endblock %}

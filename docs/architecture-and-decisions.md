@@ -9,9 +9,16 @@
 
 ## Struktura projektu
 
-Jeden Django projekt `rezervace_divadlo` se dvěma aplikacemi: `reservation`
-pro lifecycle a `notification` pro outbox/delivery.
+Jeden Django projekt v `src/rezervace_divadlo/` (od C08):
 
+```
+manage.py                  # přidá backend/ do sys.path
+backend/config/            # settings, urls, wsgi, asgi
+backend/reservation/       # lifecycle rezervace + views, forms, urls frontendu
+backend/notification/      # outbox/delivery
+frontend/templates/        # DTL šablony (base.html, components/, plays/, halls/, reservations/)
+frontend/static/           # css/, js/
+```
 
 
 ## Doménový model
@@ -56,7 +63,7 @@ bez ohledu na počet sedadel.
 
 `reservation/services.py` obsahuje OP-01 až OP-05, obnovu aktivity a expiraci.
 Modely popisují data a databázová omezení. Testy v `reservation/tests.py`
-volají služby přímo; reservation nemá HTTP API. `notification` zapisuje
+volají služby přímo; frontend views (C08) zapisují také jen přes služby. `notification` zapisuje
 outboxové požadavky v rezervační transakci a samostatný dispatcher je doručuje.
 
 `expire_reservations --watch` zajišťuje časovač. I při jeho zpoždění služby
@@ -88,7 +95,7 @@ změny stavu. Pro pravidelné přepisování stavu do `EXPIRED` musí časovač 
 | Pravidla | BR-02, BR-04, BR-06, BR-07, BR-08 — [intent_and_change.md](intent_and_change.md) |
 | Baseline | v0.2 — [evidence-and-evolution.md](evidence-and-evolution.md) |
 
-Doklady níže uvádějí soubor a funkci/model. [Testy](../src/rezervace_divadlo/reservation/tests.py) byly přečteny, nově se nespouštěly.
+Doklady níže uvádějí soubor a funkci/model. [Testy](../src/rezervace_divadlo/backend/reservation/tests.py) byly přečteny, nově se nespouštěly.
 
 ### Hlavní průchod scénáře → kód
 
@@ -365,12 +372,12 @@ Rozhodnutí znovu otevřeme, když:
     pracuje výhradně z fronty v UI).
 ```
 
-[services]: ../src/rezervace_divadlo/reservation/services.py
-[models]: ../src/rezervace_divadlo/reservation/models.py
-[settings]: ../src/rezervace_divadlo/rezervace_divadlo/settings.py
-[notifications]: ../src/rezervace_divadlo/reservation/notifications.py
-[notification-services]: ../src/rezervace_divadlo/notification/services.py
-[dispatcher]: ../src/rezervace_divadlo/notification/dispatcher.py
+[services]: ../src/rezervace_divadlo/backend/reservation/services.py
+[models]: ../src/rezervace_divadlo/backend/reservation/models.py
+[settings]: ../src/rezervace_divadlo/backend/config/settings.py
+[notifications]: ../src/rezervace_divadlo/backend/reservation/notifications.py
+[notification-services]: ../src/rezervace_divadlo/backend/notification/services.py
+[dispatcher]: ../src/rezervace_divadlo/backend/notification/dispatcher.py
 
 ## C05 Detailed Design
 
@@ -562,3 +569,41 @@ Focused structural view: [c05-notification-outbox.puml](c05-diagrams/c05-notific
 Záměrná rizika jsou doručení typu at-least-once, možná duplicita po pádu po
 externím přijetí, nejednoznačný lokální stav po pádu na posledním pokusu a
 neúplné ověření paralelních workerů na SQLite.
+
+## C08 — Frontend
+
+### User flow → kód
+
+Views jsou v [`reservation/views.py`](../src/rezervace_divadlo/backend/reservation/views.py),
+šablony v [`frontend/templates`](../src/rezervace_divadlo/frontend/templates/).
+
+| Krok | URL | Šablona | Služba |
+|---|---|---|---|
+| 1 Seznam her | `/` | `plays/play_list.html` | – |
+| 2–3 Detail hry a výběr termínu | `/plays/<id>/` | `plays/play_detail.html` | – |
+| 4–5 Sál a výběr sedadel | `/performances/<id>/seats/` | `halls/seat_selection.html` | `check_availability`, `create_reservation` |
+| 6 Kontaktní údaje | `/reservations/<id>/form/` | `reservations/reservation_form.html` | `touch_reservation` |
+| 7 Souhrn | `/reservations/<id>/summary/` | `reservations/reservation_summary.html` | `confirm_reservation` |
+| 8 Potvrzení | `/reservations/<id>/success/` | `reservations/reservation_success.html` | – |
+| Přihlášení / registrace | `/accounts/login/`, `/accounts/register/` | `registration/login.html`, `registration/register.html` | – |
+
+Všechny stránky dědí `base.html` (`header.html` + `navigation.html`, `footer.html`).
+Kroky 4–8 sdílí `components/progress.html` (ukazatel postupu), kroky 6–7
+`components/hold_countdown.html` (odpočet držení) a detail hry
+`components/free_seats.html` (počet volných míst).
+
+### Rozhodnutí
+
+| Rozhodnutí | Zdůvodnění |
+|---|---|
+| Django Template Language místo SPA | Součást Djanga, žádná další závislost ani API. |
+| `backend/` v `sys.path` místo přejmenování aplikací na `backend.*` | Beze změny app labelů, migrací, importů a testů. |
+| Kroky 4–8 vyžadují přihlášení | Služby vyžadují vlastníka rezervace; kontaktní údaje se ukládají k uživateli, model se nemění. |
+| Přihlášení a registrace přes `django.contrib.auth` | Vestavěné `LoginView` a `UserCreationForm` (validace hesel z `AUTH_PASSWORD_VALIDATORS`); po registraci je uživatel přihlášen a vrácen na `next`, pokud vede na stejný host. |
+| Sedadla se blokují už po výběru (`DRAFT`) | Využívá existující držení 5 minut, takže sedadlo nelze ztratit během vyplňování. |
+| Odeslání údajů je aktivita (`touch_reservation`) | Podle C02 aktivita prodlužuje držení: každé odeslání kontaktních údajů nastaví `hold_until` na 5 minut od teď (nejdéle do začátku představení); vypršené držení se neobnoví. |
+| Úvodní stránka seskupuje termíny podle hry | Návštěvník nejdřív vybírá hru, termíny s volnými místy vidí až v detailu hry. |
+| Počet volných míst přes `check_availability` | Stejné pravidlo blokování jako při výběru sedadel; jeden dotaz na termín stačí pro malý počet představení. |
+| Odpočet držení počítá se serverovým časem | Šablona předá `hold_until` i aktuální serverový čas, takže nevadí špatné hodiny klienta. Po vypršení JS zablokuje odeslání; rozhoduje ale služba. |
+| Nedostupné sedadlo nelze rezervovat na třech úrovních | Zobrazení (`disabled`), validace formuláře (volby jen z dostupných sedadel), služba + DB constraint při souběhu. |
+| Rozsah | Implementován pouze flow 1–8; detail/zrušení rezervace a stránky sálů nejsou součástí. |

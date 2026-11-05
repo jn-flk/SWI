@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/plays.css' %}">{% endblock %}
+
+{% block content %}
+  <h1>Představení</h1>
+  <ul class="cards">
+    {% for play in plays %}
+      <li class="card">
+        <h2><a href="{% url 'play_detail' play.pk %}">{{ play.title }}</a></h2>
+        <p class="meta">
+          {% if play.date_count == 1 %}1 termín{% elif play.date_count < 5 %}{{ play.date_count }} termíny{% else %}{{ play.date_count }} termínů{% endif %}
+          · nejbližší {{ play.next_start|date:"j. n. Y H:i" }}
+        </p>
+        {% if play.description %}<p>{{ play.description|truncatewords:20 }}</p>{% endif %}
+      </li>
+    {% empty %}
+      <li>Žádná nadcházející představení.</li>
+    {% endfor %}
+  </ul>
+{% endblock %}

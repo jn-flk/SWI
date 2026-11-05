@@ -1,0 +1,60 @@
+#seat-form { max-width: none; }
+
+.hall {
+  overflow-x: auto;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-surface);
+}
+
+.hall__stage {
+  margin-bottom: 16px;
+  padding: 4px;
+  border-radius: 4px;
+  background: var(--color-border);
+  text-align: center;
+  font-size: 0.875rem;
+}
+
+/* Right padding mirrors the row label so the seats are centred under the stage. */
+.hall__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: max-content;
+  margin: 0 auto 6px;
+  padding-right: 30px;
+}
+.hall__row-label { width: 24px; color: var(--color-muted); font-size: 0.875rem; }
+
+.seat {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--color-accent);
+  border-radius: 6px 6px 2px 2px;
+  background: var(--color-surface);
+  font-size: 0.8rem;
+  cursor: pointer;
+  user-select: none;
+}
+.seat input { position: absolute; opacity: 0; pointer-events: none; }
+.seat:has(input:focus-visible) { outline: 2px solid var(--color-text); }
+.seat--selected { background: var(--color-accent); color: #fff; }
+.seat--unavailable {
+  border-color: var(--color-border);
+  background: var(--color-border);
+  color: var(--color-muted);
+  cursor: not-allowed;
+}
+
+.legend { display: flex; flex-wrap: wrap; gap: 16px; padding: 0; list-style: none; }
+.legend li { display: flex; align-items: center; gap: 6px; }
+.legend .seat { width: 20px; height: 20px; cursor: default; }
+
+@media (max-width: 600px) {
+  .seat { width: 30px; height: 30px; }
+}

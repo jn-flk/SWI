@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Souhrn rezervace{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/reservations.css' %}">{% endblock %}
+
+{% block content %}
+  {% include "components/progress.html" with step=3 %}
+  <h1>Souhrn rezervace</h1>
+  {% include "reservations/_overview.html" %}
+  <dl class="overview">
+    <dt>Jméno</dt><dd>{{ user.get_full_name }}</dd>
+    <dt>E-mail</dt><dd>{{ user.email }}</dd>
+  </dl>
+  <form method="post" class="actions">
+    {% csrf_token %}
+    <a href="{% url 'reservation_form' reservation.pk %}">Upravit údaje</a>
+    <button type="submit" class="button">Potvrdit rezervaci</button>
+  </form>
+{% endblock %}
+
+{% block extra_js %}<script src="{% static 'js/hold_countdown.js' %}"></script>{% endblock %}

@@ -1,0 +1,8 @@
+<span class="hold" role="timer" aria-live="off"
+   data-hold-until="{{ reservation.hold_until|date:'U' }}" data-now="{% now 'U' %}"
+   data-expired-url="{% url 'seat_selection' reservation.performance_id %}">
+  <svg class="hold__icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+    <path d="M3 1.5h10c0 3-1.5 5-5 6.5 3.5 1.5 5 3.5 5 6.5H3c0-3 1.5-5 5-6.5-3.5-1.5-5-3.5-5-6.5Z"/>
+  </svg>
+  <strong class="hold__time" aria-label="Zbývající minuty">--</strong>
+</span>

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Přihlášení{% endblock %}
+
+{% block content %}
+  <h1>Přihlášení</h1>
+  <form method="post" class="form">
+    {% csrf_token %}
+    {{ form.as_div }}
+    <input type="hidden" name="next" value="{{ next }}">
+    <button type="submit" class="button">Přihlásit</button>
+  </form>
+  <p>Nemáte účet? <a href="{% url 'register' %}{% if next %}?next={{ next|urlencode }}{% endif %}">Zaregistrujte se</a>.</p>
+{% endblock %}
+
+{% block extra_js %}<script src="{% static 'js/password_toggle.js' %}"></script>{% endblock %}
