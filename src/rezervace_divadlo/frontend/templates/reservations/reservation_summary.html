@@ -12,7 +12,6 @@
     <dt>Jméno</dt><dd>{{ user.get_full_name }}</dd>
     <dt>E-mail</dt><dd>{{ user.email }}</dd>
   </dl>
-  {% include "components/hold_countdown.html" %}
   <form method="post" class="actions">
     {% csrf_token %}
     <a href="{% url 'reservation_form' reservation.pk %}">Upravit údaje</a>

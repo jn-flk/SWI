@@ -87,6 +87,9 @@ def play_detail(request, pk):
 @login_required
 def seat_selection(request, pk):
     performance = _performance(pk)
+    services.expire_reservations(performance_id=performance.pk)
+    if request.method == "GET":
+        services.release_draft_reservations(request.user, performance.pk)
     availability = services.check_availability(performance.pk)
     form = SeatSelectionForm(
         request.POST if request.method == "POST" else None,

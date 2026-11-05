@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
@@ -51,6 +52,7 @@ class FrontendTests(ReservationFixture, TestCase):
         self.assertContains(
             response, f'data-hold-until="{int(reservation.hold_until.timestamp())}"'
         )
+        self.assertContains(response, "hold__icon")
 
     def test_seat_selection_requires_login(self):
         self.client.logout()
@@ -58,7 +60,7 @@ class FrontendTests(ReservationFixture, TestCase):
         self.assertRedirects(response, f"{reverse('login')}?next={self.seats_url}")
 
     def test_blocked_and_inactive_seats_are_shown_unavailable(self):
-        self.create(1)
+        create_reservation(self.other_user, self.performance.pk, [self.seats[0].pk])
         self.seats[1].is_active = False
         self.seats[1].save()
         response = self.client.get(self.seats_url)
@@ -69,6 +71,40 @@ class FrontendTests(ReservationFixture, TestCase):
         self.assertFalse(available[self.seats[0].pk])
         self.assertFalse(available[self.seats[1].pk])
         self.assertTrue(available[self.seats[2].pk])
+
+    def test_expired_hold_is_released_when_seat_selection_opens(self):
+        reservation = create_reservation(
+            self.user, self.performance.pk, [self.seats[0].pk],
+            now=timezone.now() - timedelta(minutes=16),
+        )
+        response = self.client.get(self.seats_url)
+        available = {
+            item["seat"].pk: item["available"]
+            for _, seats in response.context["rows"] for item in seats
+        }
+        reservation.refresh_from_db()
+        self.assertEqual(reservation.status, Reservation.Status.EXPIRED)
+        self.assertTrue(available[self.seats[0].pk])
+
+    def test_returning_to_seat_selection_releases_own_active_hold(self):
+        reservation = self.create(1)
+        self.client.get(self.seats_url)
+        reservation.refresh_from_db()
+        self.assertEqual(reservation.status, Reservation.Status.CANCELLED)
+        self.assertFalse(reservation.allocations.get().active)
+
+    def test_returning_to_seat_selection_keeps_other_users_hold(self):
+        reservation = create_reservation(
+            self.other_user, self.performance.pk, [self.seats[0].pk],
+        )
+        response = self.client.get(self.seats_url)
+        available = {
+            item["seat"].pk: item["available"]
+            for _, seats in response.context["rows"] for item in seats
+        }
+        reservation.refresh_from_db()
+        self.assertEqual(reservation.status, Reservation.Status.DRAFT)
+        self.assertFalse(available[self.seats[0].pk])
 
     def test_unavailable_seat_cannot_be_reserved(self):
         self.create(1)
@@ -115,22 +151,24 @@ class FrontendTests(ReservationFixture, TestCase):
         reservation.refresh_from_db()
         self.assertEqual(reservation.status, Reservation.Status.DRAFT)
 
-    def test_submitting_contact_details_renews_hold(self):
+    def test_submitting_contact_details_keeps_fixed_hold(self):
         reservation = create_reservation(
             self.user, self.performance.pk, [self.seats[0].pk],
-            now=timezone.now() - timedelta(minutes=2),
+            now=timezone.now() - timedelta(
+                seconds=max(1, settings.RESERVATION_HOLD_MINUTES * 60 // 2)
+            ),
         )
         hold_until = reservation.hold_until
         self.client.post(self.url("reservation_form", reservation), {
             "first_name": "Jan", "last_name": "Novák", "email": "jan@example.com",
         })
         reservation.refresh_from_db()
-        self.assertGreater(reservation.hold_until, hold_until)
+        self.assertEqual(reservation.hold_until, hold_until)
 
     def test_expired_hold_cannot_be_confirmed(self):
         reservation = create_reservation(
             self.user, self.performance.pk, [self.seats[0].pk],
-            now=timezone.now() - timedelta(minutes=6),
+            now=timezone.now() - timedelta(minutes=16),
         )
         response = self.client.post(self.url("reservation_summary", reservation))
         self.assertRedirects(response, self.seats_url)

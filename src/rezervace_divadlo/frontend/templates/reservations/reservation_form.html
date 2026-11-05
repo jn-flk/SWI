@@ -7,7 +7,6 @@
 {% block content %}
   {% include "components/progress.html" with step=2 %}
   <h1>Kontaktní údaje</h1>
-  {% include "components/hold_countdown.html" %}
   <form method="post" class="form">
     {% csrf_token %}
     {{ form.as_div }}

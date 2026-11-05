@@ -11,8 +11,21 @@
 .overview dd { margin: 0; }
 
 .hold { color: var(--color-muted); }
+.nav .hold { color: #fff; white-space: nowrap; }
+.hold__icon {
+  width: 16px;
+  height: 16px;
+  margin-right: 4px;
+  vertical-align: -3px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.25;
+}
 .hold__time,
 .hold--expired { color: var(--color-error); }
+.nav .hold__time { color: #fff; }
 
 .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
 
