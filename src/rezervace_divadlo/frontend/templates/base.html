@@ -1,0 +1,21 @@
+{% load static %}<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Rezervace divadla{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+  {% include "components/header.html" %}
+  <main class="container">
+    {% for message in messages %}
+      <p class="message message--{{ message.tags }}">{{ message }}</p>
+    {% endfor %}
+    {% block content %}{% endblock %}
+  </main>
+  {% include "components/footer.html" %}
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

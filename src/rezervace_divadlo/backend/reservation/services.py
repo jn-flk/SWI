@@ -159,6 +159,23 @@ def _expire_for_performance(performance, now):
     return sum(_expire_one(reservation, now) for reservation in query)
 
 
+@_atomic_operation
+def release_draft_reservations(actor, performance_id, *, now=None):
+    """Release the actor's unfinished drafts when returning to seat selection."""
+    _authorize(actor)
+    performance = _performance(performance_id, lock=True)
+    now = _now(now)
+    _expire_for_performance(performance, now)
+    reservations = Reservation.objects.select_for_update().filter(
+        performance=performance, owner=actor, status=Status.DRAFT,
+    )
+    released = 0
+    for reservation in reservations:
+        _set_status(reservation, Status.CANCELLED)
+        released += 1
+    return released
+
+
 def check_availability(performance_id, seat_ids=None, *, start=None, end=None, now=None):
     """Read-only snapshot for the performance; half-open interval queries are optional."""
     now = _now(now)
@@ -275,7 +292,7 @@ def approve_reservation(actor, reservation_id, *, approve=True, now=None):
 
 @_atomic_operation
 def touch_reservation(actor, reservation_id, *, now=None):
-    """Explicit session activity renews DRAFT, never resurrects an expired hold."""
+    """Validate a DRAFT hold without extending its fixed deadline."""
     reservation = _reservation(reservation_id)
     _authorize_owner(actor, reservation)
     now = _now(now)
@@ -283,11 +300,6 @@ def touch_reservation(actor, reservation_id, *, now=None):
         return ReservationError("expired", "Držení rezervace vypršelo.")
     if reservation.status != Status.DRAFT:
         return ReservationError("invalid_state", "Aktivitu lze obnovit pouze pro DRAFT.")
-    reservation.hold_until = min(
-        now + timedelta(minutes=settings.RESERVATION_HOLD_MINUTES),
-        reservation.performance.start_at,
-    )
-    reservation.save(update_fields=["hold_until"])
     return reservation
 
 

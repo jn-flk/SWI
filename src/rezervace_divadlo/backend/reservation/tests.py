@@ -1,6 +1,7 @@
 from datetime import timedelta
 from unittest.mock import Mock, patch
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser, Permission
 from django.test import TestCase, TransactionTestCase
@@ -243,11 +244,12 @@ class ReservationTests(ReservationFixture, TestCase):
         with self.assertRaises(ReservationError):
             check_availability(self.performance.pk, start=start, end=start, now=self.now)
 
-    def test_activity_extends_hold_and_expiration_is_idempotent(self):
+    def test_activity_does_not_extend_hold_and_expiration_is_idempotent(self):
         reservation = self.create()
-        renewed = touch_reservation(self.user, reservation.pk, now=self.now + timedelta(minutes=4))
-        deadline = self.now + timedelta(minutes=9)
-        self.assertEqual(renewed.hold_until, deadline)
+        elapsed = timedelta(seconds=max(1, settings.RESERVATION_HOLD_MINUTES * 60 // 2))
+        renewed = touch_reservation(self.user, reservation.pk, now=self.now + elapsed)
+        deadline = self.now + timedelta(minutes=settings.RESERVATION_HOLD_MINUTES)
+        self.assertEqual(renewed.hold_until, reservation.hold_until)
         self.assertEqual(expire_reservations(now=deadline - timedelta(seconds=1)), 0)
         self.assertEqual(expire_reservations(now=deadline), 1)
         self.assertEqual(expire_reservations(now=deadline), 0)

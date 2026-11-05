@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Rezervace dokončena{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/reservations.css' %}">{% endblock %}
+
+{% block content %}
+  {% include "components/progress.html" with step=4 %}
+  {% if reservation.status == "CONFIRMED" %}
+    <h1>Rezervace je potvrzena</h1>
+  {% else %}
+    <h1>Rezervace čeká na schválení</h1>
+    <p>O výsledku vás budeme informovat.</p>
+  {% endif %}
+  <p>Číslo rezervace: <strong>{{ reservation.pk }}</strong></p>
+  {% include "reservations/_overview.html" %}
+  <a class="button" href="{% url 'play_list' %}">Zpět na představení</a>
+{% endblock %}

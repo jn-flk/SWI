@@ -1,0 +1,3 @@
+<span class="free-seats{% if not free_seats %} free-seats--none{% endif %}">
+  {% if not free_seats %}Vyprodáno{% elif free_seats == 1 %}1 volné místo{% elif free_seats < 5 %}{{ free_seats }} volná místa{% else %}{{ free_seats }} volných míst{% endif %}
+</span>

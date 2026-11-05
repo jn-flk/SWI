@@ -1,0 +1,6 @@
+<ol class="progress" aria-label="Průběh rezervace">
+  <li class="progress__step{% if step == 1 %} progress__step--current{% elif step > 1 %} progress__step--done{% endif %}"{% if step == 1 %} aria-current="step"{% endif %}>Sedadla</li>
+  <li class="progress__step{% if step == 2 %} progress__step--current{% elif step > 2 %} progress__step--done{% endif %}"{% if step == 2 %} aria-current="step"{% endif %}>Údaje</li>
+  <li class="progress__step{% if step == 3 %} progress__step--current{% elif step > 3 %} progress__step--done{% endif %}"{% if step == 3 %} aria-current="step"{% endif %}>Souhrn</li>
+  <li class="progress__step{% if step == 4 %} progress__step--current{% endif %}"{% if step == 4 %} aria-current="step"{% endif %}>Hotovo</li>
+</ol>
