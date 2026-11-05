@@ -87,7 +87,7 @@ Runtime mapuje všechny logické prvky do jednoho Django procesu.
 
 Žádná řádka `CHANGE` nebyla nalezena. Přidána byla
 jen opakovatelná architektonická kontrola v
-[reservation/tests.py](../../src/rezervace_divadlo/reservation/tests.py), která
+[reservation/tests.py](../../src/rezervace_divadlo/backend/reservation/tests.py), která
 ověřuje, že import `logging` zůstává izolován v `notifications.py`.
 
 ## Behaviour verification
@@ -106,8 +106,8 @@ Architektonické pravidlo:
   Vedlejší efekt Notification Service (logging/adaptér) smí být importován
   pouze v Notification Integration, tedy v notifications.py.
 Kontrola:
-  ReservationTests.test_notification_side_effect_is_isolated_to_integration_adapter
-  staticky projde AST všech modulů reservation/*.py.
+  Testy notifikačního outboxu a dispatcheru ověřují transakční zápis,
+  doručení mimo transakci, retry a fencing.
 Výsledek:
   PASS — jediný modul importující logging je notifications.py.
 ```

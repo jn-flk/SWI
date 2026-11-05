@@ -28,7 +28,7 @@ není drženo, čeká na schválení ani potvrzeno pro stejné představení.
 - představení existuje a všechna sedadla patří do sálu představení;
 - seznam vybraných sedadel není prázdný a neobsahuje duplicity;
 - vybraná sedadla jsou aktivní;
-- délka držení je kladná a je určena systémem.
+- systém nastavuje pevný hold na 15 minut od vytvoření `DRAFT`;
 - představení začíná později než za 15 minut; pokud rezervace vyžaduje
   schválení (více než 10 sedadel nebo celý sál), začíná nejméně za 24 hodin.
 
@@ -42,7 +42,7 @@ není drženo, čeká na schválení ani potvrzeno pro stejné představení.
 - BR-01 (Interval semantics)
 - BR-02 (Exclusive Resource invariant)
 - BR-05 (Availability policy)
-- BR-07 (Hold and inactivity policy)
+- BR-07 (Fixed hold and return-to-selection policy)
 - BR-08 (Bulk approval lead time)
 
 ### Main success scenario
@@ -61,39 +61,42 @@ není drženo, čeká na schválení ani potvrzeno pro stejné představení.
 - některé sedadlo už drží, čeká na schválení nebo je potvrzené -> odmítnout,
    rezervace nevznikne;
 - vypršené držení -> odmítnout nebo nejdříve atomicky uvolnit;
-- neaktivní rezervační relace po pěti minutách -> držení přejde do
-   `EXPIRED` a sedadla se uvolní.
+- návrat vlastníka na výběr sedadel pro stejné představení -> jeho aktivní
+   nedokončená držení se nastaví na `CANCELLED` a sedadla se ihned uvolní;
+   držení jiných uživatelů se nezmění;
+- po 15 minutách od vytvoření `DRAFT` -> držení přejde do `EXPIRED` a
+   sedadla se uvolní.
 
 ### Verification examples
 - výběr tří sedadel a pokračování -> jedna `DRAFT` pro tři sedadla;
 - dva souběžné pokusy o stejné sedadlo -> nejvýše jedna `DRAFT`;
-- neaktivita po pěti minutách -> `DRAFT -> EXPIRED` a dostupnost se obnoví;
+- uplynutí 15 minut od vytvoření -> `DRAFT -> EXPIRED` a dostupnost se obnoví;
+- návrat vlastníka na výběr -> vlastní `DRAFT` se zruší a sedadla se ihned
+  uvolní;
 - `start == end` -> odmítnuto;
 - neznámé sedadlo -> odmítnuto.
 
-## OP-01a — Renew Reservation Hold
+## OP-01a — Validate Reservation Hold
 
 ### Goal / user value
-Aktivní návštěvník může při práci s výběrem prodloužit platné držení
-rezervace `DRAFT`, aby neskončilo během používání.
+Systém při odeslání kontaktních údajů ověří, že držení `DRAFT` stále platí,
+aniž by jeho deadline měnil.
 
 ### Preconditions
 - rezervace existuje, vlastník je oprávněný a stav je `DRAFT`;
-- `hold_until` ještě nevypršel.
+- `hold_until` ještě nevypršel; jeho hodnota zůstává stejná.
 
 ### Behaviour
-- systém nastaví `hold_until` na nejdřívější z `now + 5 minut` a začátku
-  představení;
+- systém pouze ověří platnost existujícího `hold_until`;
+- přechod mezi kroky ani odeslání kontaktních údajů držení neprodlužují;
 - vypršel-li původní hold, systém nejprve nastaví `EXPIRED`, uvolní sedadla
-  a obnovu odmítne;
-- žádný jiný stav nelze touto operací obnovit a držení se nikdy neobnovuje
-  zpětně.
+  a další postup odmítne;
+- žádný jiný stav nelze touto operací validovat.
 
 **Implementation:** `reservation.services.touch_reservation`
 
 ### Referenced rules / invariants
-- BR-03 (Cancellation policy)
-- BR-07 (Hold and inactivity policy)
+- BR-07 (Fixed hold and return-to-selection policy)
 
 ## OP-02 — Check Availability
 

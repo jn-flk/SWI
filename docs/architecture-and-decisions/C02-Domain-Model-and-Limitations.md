@@ -33,7 +33,7 @@ bez ohledu na počet sedadel.
 
 ## Business logic placement
 
-`reservation/services.py` obsahuje OP-01 až OP-05, obnovu aktivity a expiraci.
+`reservation/services.py` obsahuje OP-01 až OP-05, validaci aktivního držení a expiraci.
 Modely popisují data a databázová omezení. Testy v `reservation/tests.py`
 volají služby přímo; reservation nemá HTTP API. `notification` zapisuje
 outboxové požadavky v rezervační transakci a samostatný dispatcher je doručuje.
@@ -55,3 +55,7 @@ změny stavu. Pro pravidelné přepisování stavu do `EXPIRED` musí časovač 
   databáze je třeba zachovat její zálohu.
 - Přímé změny stavů či alokací přes ORM obcházejí pravidla služeb;
   aplikace používá pro všechny business operace `services.py`.
+- Hold `DRAFT` je pevně 15 minut od vytvoření. Kontaktní formulář volá
+  `touch_reservation` pouze jako validaci; neprodlužuje deadline. GET na výběru
+  sedadel volá `release_draft_reservations` jen pro vlastníka a dané
+  představení, takže návrat do výběru neuvolní cizí holdy.

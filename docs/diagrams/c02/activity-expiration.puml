@@ -3,8 +3,8 @@ title Diagram aktivit – Expirace rezervace
 
 |Systém|
 start
-:Vypršel časovač rezervace X;
-if (Stav = DRAFT\na neaktivita uživatele ≥ 5 min?) then (ano)
+:Vypršel serverový hold rezervace X;
+if (Stav = DRAFT\na now ≥ hold_until\n(15 min od vytvoření)?) then (ano)
 elseif (Stav = PENDING_APPROVAL\na uplynula lhůta schválení (24 h)?) then (ano)
 else (ne)
   :Nic nedělat\n(už potvrzeno, rozhodnuto nebo zrušeno);
