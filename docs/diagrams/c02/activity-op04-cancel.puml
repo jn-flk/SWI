@@ -21,7 +21,7 @@ if (now < start představení? (BR-03)) then (ne)
   :Odmítnout – představení už začalo;\nstav se nemění;
   stop
 endif
-:Zastavit běžící časovač\n(neaktivita / lhůta schválení);
+:Zrušit běžící hold nebo lhůtu schválení;
 :Nastavit stav CANCELLED\n(záznam se nemaže);
 :Uvolnit blokovaná sedadla;
 :Vrátit stav CANCELLED;

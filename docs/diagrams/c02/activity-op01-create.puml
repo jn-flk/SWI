@@ -27,18 +27,20 @@ note right
   ze dvou souběžných požadavků
   na stejné sedadlo uspěje jen jeden.
 end note
-:Spustit časovač neaktivity (5 min);
+:Nastavit pevný serverový hold_until\nna now + 15 min;
 :Vrátit ID rezervace a stav DRAFT;
 |Návštěvník|
 :Rezervace je v DRAFT,\nsedadla jsou držena;
 switch (Další krok?)
 case (potvrdí)
   :→ OP-03 Potvrdit rezervaci;
-case (obnoví aktivitu)
-  :→ OP-01a Obnovit držení;\nDRAFT zůstává DRAFT;
+case (odešle kontaktní údaje)
+  :→ OP-01a Validovat držení;\nDRAFT zůstává DRAFT;\nhold_until se nemění;
 case (zruší)
   :→ OP-04 Zrušit rezervaci;
-case (neaktivní ≥ 5 min)
+case (vrátí se na výběr sedadel)
+  :Vlastní aktivní DRAFT pro představení\n→ CANCELLED; sedadla se uvolní;
+case (hold ≥ 15 min)
   :→ Expirace rezervace;
 endswitch
 stop

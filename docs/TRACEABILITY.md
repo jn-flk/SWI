@@ -6,10 +6,10 @@ Každý požadavek a pravidlo s místem v kódu a testy, které ho ověřují.
 Požadavky jsou v [Operations and requirements](intent-and-change/C02-Operations-and-Requirements.md),
 pravidla v [Domain rules](intent-and-change/C02-Domain-Rules.md).
 
-Kód: [services.py](../src/rezervace_divadlo/reservation/services.py),
-[models.py](../src/rezervace_divadlo/reservation/models.py).
-Testy: [tests.py](../src/rezervace_divadlo/reservation/tests.py),
-[tests_concurrency.py](../src/rezervace_divadlo/reservation/tests_concurrency.py).
+Kód: [services.py](../src/rezervace_divadlo/backend/reservation/services.py),
+[models.py](../src/rezervace_divadlo/backend/reservation/models.py).
+Testy: [tests.py](../src/rezervace_divadlo/backend/reservation/tests.py),
+[tests_concurrency.py](../src/rezervace_divadlo/backend/reservation/tests_concurrency.py).
 
 ## Requirements
 
@@ -28,7 +28,7 @@ Testy: [tests.py](../src/rezervace_divadlo/reservation/tests.py),
 | Pravidlo | Kód | Testy |
 |---|---|---|
 | **BR-02** (Exclusive Resource invariant) | DB constraint `unique_active_performance_seat` v `models.py`; `create_reservation` | `test_one_occupied_seat_rejects_entire_selection`, `test_concurrent_creation_has_one_winner_for_one_seat` |
-| **BR-07** (Hold and inactivity policy), OP-01a (Renew Reservation Hold) | `touch_reservation`, `_expire_one`, `expire_reservations` | `test_activity_extends_hold_and_expiration_is_idempotent`, `test_confirm_at_hold_deadline_expires_reservation` |
+| **BR-07** (Fixed hold and return-to-selection policy), OP-01a (Validate Reservation Hold) | `touch_reservation`, `release_draft_reservations`, `_expire_one`, `expire_reservations` | `test_activity_does_not_extend_hold_and_expiration_is_idempotent`, `test_submitting_contact_details_keeps_fixed_hold`, `test_returning_to_seat_selection_releases_own_active_hold`, `test_returning_to_seat_selection_keeps_other_users_hold`, `test_confirm_at_hold_deadline_expires_reservation` |
 | Oprávnění (předpoklad OP-01 až OP-05) | `_authorize`, `_authorize_owner`, oprávnění `approve_reservation` | `test_anonymous_user_and_other_owner_cannot_change_reservation`, `test_only_approver_can_decide_and_rejection_releases_seats` |
 | Notifikace přes outbox (ADR-01) | `_notify` → `notification.services.record_notification` | `test_confirmation_enqueues_notification_without_inline_delivery`, `test_outbox_record_and_status_change_share_one_transaction`, `test_decision_and_expiry_enqueue_owner_notifications`, `test_committed_transitions_are_delivered_through_sender`; testy dispatcheru v [C05 evidence](evidence-and-evolution/C05-DD-Verification.md) |
 
@@ -39,4 +39,5 @@ Chování ze specifikace, které žádný test neověřuje:
 - zrušení rezervace ve stavu `PENDING_APPROVAL` (REQ-05);
 - odmítnutí zrušení `REJECTED` nebo `EXPIRED` rezervace (BR-03);
 - souběh schválení, zamítnutí, zrušení a expirace (BR-06);
-- obnova držení nikdy nepřesáhne začátek představení (OP-01a).
+- přesná hranice 15 minut od vytvoření je ověřena přes parametrizovaný test
+  nastavení hold duration; UI zobrazuje pouze zbývající celé minuty.

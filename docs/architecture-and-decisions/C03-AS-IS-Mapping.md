@@ -8,10 +8,10 @@
 |---|---|
 | Operace | OP-03 — Confirm Reservation |
 | Požadavky | REQ-03, REQ-04 — [C02-Operations-and-Requirements.md](../intent-and-change/C02-Operations-and-Requirements.md) |
-| Pravidla | BR-02 (Exclusive Resource invariant), BR-04 (Confirmation policy), BR-06 (Concurrent outcome), BR-07 (Hold and inactivity policy), BR-08 (Bulk approval lead time) — [C02-Domain-Rules.md](../intent-and-change/C02-Domain-Rules.md) |
+| Pravidla | BR-02 (Exclusive Resource invariant), BR-04 (Confirmation policy), BR-06 (Concurrent outcome), BR-07 (Fixed hold and return-to-selection policy), BR-08 (Bulk approval lead time) — [C02-Domain-Rules.md](../intent-and-change/C02-Domain-Rules.md) |
 | Baseline | v0.2 — [C02-Specification-to-Running-App.md](../evidence-and-evolution/C02-Specification-to-Running-App.md) |
 
-Doklady níže uvádějí soubor a funkci/model. [Testy](../../src/rezervace_divadlo/reservation/tests.py) byly přečteny, nově se nespouštěly.
+Doklady níže uvádějí soubor a funkci/model. [Testy](../../src/rezervace_divadlo/backend/reservation/tests.py) byly přečteny, nově se nespouštěly.
 
 ## Main scenario path → code
 
@@ -83,9 +83,9 @@ Obsah modulů viz tabulka hlavních částí. Auth a logging jsou frameworkové 
 | Doklad | [settings.py][settings]: `IMMEDIATE`, timeout 20 s; [services.py][services]: chyba `busy` při zamčené DB. Test `test_confirm_cannot_be_repeated` ověřuje jen sekvenční opakování. |
 | Proč je důležitá | SQLite serializuje zápisy; souběžný experiment musí ověřit správnost přechodů, čekání a četnost `busy`. |
 
-[services]: ../../src/rezervace_divadlo/reservation/services.py
-[models]: ../../src/rezervace_divadlo/reservation/models.py
-[settings]: ../../src/rezervace_divadlo/rezervace_divadlo/settings.py
-[notifications]: ../../src/rezervace_divadlo/reservation/notifications.py
-[notification-services]: ../../src/rezervace_divadlo/notification/services.py
-[dispatcher]: ../../src/rezervace_divadlo/notification/dispatcher.py
+[services]: ../../src/rezervace_divadlo/backend/reservation/services.py
+[models]: ../../src/rezervace_divadlo/backend/reservation/models.py
+[settings]: ../../src/rezervace_divadlo/backend/config/settings.py
+[notifications]: ../../src/rezervace_divadlo/backend/reservation/notifications.py
+[notification-services]: ../../src/rezervace_divadlo/backend/notification/services.py
+[dispatcher]: ../../src/rezervace_divadlo/backend/notification/dispatcher.py

@@ -29,7 +29,7 @@ baseline týmem není v repozitáři explicitně doloženo.
 ## Demonstrated core operations
 
 V automatických testech byly přímo přes
-[reservation/services.py](../../src/rezervace_divadlo/reservation/services.py)
+[reservation/services.py](../../src/rezervace_divadlo/backend/reservation/services.py)
 provedeny všechny čtyři základní operace:
 
 - OP-01 Create Reservation — vytvoření a uložení rezervace více sedadel.
@@ -44,7 +44,7 @@ pro reprodukci jsou testy a Django shell; API není součástí aplikace.
 ## Executed verification examples
 
 Poslední skutečně provedený běh aktuální sady
-[reservation/tests.py](../../src/rezervace_divadlo/reservation/tests.py)
+[reservation/tests.py](../../src/rezervace_divadlo/backend/reservation/tests.py)
 skončil výsledkem **20 testů, všechny prošly**. Django systémová kontrola
 byla bez chyb. Testy používají izolovanou SQLite databázi a řízené hodnoty
 času, takže není potřeba čekat na skutečné timeouty.
