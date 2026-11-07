@@ -17,7 +17,7 @@ note right
   Kontrola překryvu zde není potřeba –
   sedadla jsou blokovaná už od DRAFT.
 end note
-:Zastavit časovač neaktivity;
+:Zneplatnit hold_until při změně\nz DRAFT do dalšího stavu;
 if (hold_until stále platí?) then (ne)
   :Nastavit EXPIRED a uvolnit sedadla;
   :Odmítnout jako vypršené;

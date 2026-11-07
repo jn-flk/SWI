@@ -5,8 +5,9 @@
 ## Reservation states
 
 - `DRAFT`: uživatel vybral jedno nebo více sedadel a pokračoval k rezervaci.
-    Sedadla jsou po omezenou dobu dočasně držena pro daného návštěvníka.
-    Stav má `hold_until`.
+    Sedadla jsou dočasně držena přesně 15 minut od vytvoření pro daného
+    návštěvníka. Stav má serverový `hold_until`, který se žádnou aktivitou
+    neprodlužuje.
 - `PENDING_APPROVAL`: hromadná rezervace byla odeslána ke schválení. Stav je
     nefinální a všechna její sedadla zůstávají blokována.
 - `CONFIRMED`: běžná rezervace byla přijata nebo hromadná rezervace schválena.
@@ -28,9 +29,11 @@
     nebo rezervace celého sálu je odeslána ke schválení. Sedadla zůstávají
     blokována do rozhodnutí nebo vypršení.
 - `DRAFT -> CANCELLED`: návštěvník nebo jiný oprávněný aktér aktivně zruší
-    držení před jeho potvrzením. Sedadla se uvolní.
-- `DRAFT -> EXPIRED`: držení automaticky vyprší, například po ukončení
-    neaktivní rezervační relace. Sedadla se uvolní bez aktivního zrušení.
+    držení před jeho potvrzením. Sedadla se uvolní. Stejný přechod se použije
+    při návratu vlastníka na výběr sedadel pro dané představení; zruší se jeho
+    ostatní aktivní nedokončená držení, nikoli držení jiných uživatelů.
+- `DRAFT -> EXPIRED`: 15 minut po vytvoření držení automaticky vyprší.
+    Sedadla se uvolní bez aktivního zrušení.
 - `PENDING_APPROVAL -> CONFIRMED`: schvalovatel hromadnou rezervaci přijme.
     Sedadla zůstávají trvale blokována.
 - `PENDING_APPROVAL -> REJECTED`: schvalovatel hromadnou rezervaci zamítne.

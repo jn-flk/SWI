@@ -77,9 +77,9 @@ Pravidla pro úpravy dokumentace (struktura, odkazy, styl) jsou v [AGENTS.md](AG
 
 | Co | Soubor |
 |---|---|
-| Rezervační služby (OP-01 až OP-05, expirace) | [reservation/services.py](../src/rezervace_divadlo/reservation/services.py) |
-| Modely a databázová omezení | [reservation/models.py](../src/rezervace_divadlo/reservation/models.py) |
-| Testy rezervací | [reservation/tests.py](../src/rezervace_divadlo/reservation/tests.py), [reservation/tests_concurrency.py](../src/rezervace_divadlo/reservation/tests_concurrency.py) |
-| Notifikační outbox a dispatcher | [notification/services.py](../src/rezervace_divadlo/notification/services.py), [notification/dispatcher.py](../src/rezervace_divadlo/notification/dispatcher.py) |
-| Testy notifikací | [notification/tests.py](../src/rezervace_divadlo/notification/tests.py) |
-| Nastavení (limity, databáze) | [settings.py](../src/rezervace_divadlo/rezervace_divadlo/settings.py) |
+| Rezervační služby (OP-01 až OP-05, expirace) | [reservation/services.py](../src/rezervace_divadlo/backend/reservation/services.py) |
+| Modely a databázová omezení | [reservation/models.py](../src/rezervace_divadlo/backend/reservation/models.py) |
+| Testy rezervací | [reservation/tests.py](../src/rezervace_divadlo/backend/reservation/tests.py), [reservation/tests_concurrency.py](../src/rezervace_divadlo/backend/reservation/tests_concurrency.py) |
+| Notifikační outbox a dispatcher | [notification/services.py](../src/rezervace_divadlo/backend/notification/services.py), [notification/dispatcher.py](../src/rezervace_divadlo/backend/notification/dispatcher.py) |
+| Testy notifikací | [notification/tests.py](../src/rezervace_divadlo/backend/notification/tests.py) |
+| Nastavení (limity, databáze) | [settings.py](../src/rezervace_divadlo/backend/config/settings.py) |

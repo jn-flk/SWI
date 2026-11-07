@@ -3,7 +3,7 @@
 ← [Navigator](../NAVIGATOR.md) · [Traceability](../TRACEABILITY.md) · Related: [States](../intent-and-change/C02-States-and-Transitions.md) · [Operations](../intent-and-change/C02-Operations-and-Requirements.md) · [Domain model](../architecture-and-decisions/C02-Domain-Model-and-Limitations.md) · [C02 evidence](../evidence-and-evolution/C02-Specification-to-Running-App.md)
 
 Změna C02 rozšiřuje rezervaci o výběr více sedadel, schvalování hromadných
-rezervací a automatické vypršení neaktivních nebo dlouho čekajících stavů.
+rezervací a automatické vypršení pevných držení nebo dlouho čekajících stavů.
 Hranice pro hromadnou rezervaci je více než deset sedadel; rezervace celého sálu
 vyžaduje schválení vždy. Jedna `Reservation` může obsahovat více sedadel.
 
@@ -47,13 +47,19 @@ atomicky ověřují zdrojový stav a zachovávají nebo uvolňují existující
 blokování; novou kontrolu kolize neprovádějí. Při závodu schválení, zrušení
 a expirace uspěje pouze první platný přechod.
 
-### BR-07 — Hold and inactivity policy
+### BR-07 — Fixed hold and return-to-selection policy
 Uživatel nejdříve zobrazí sál a vybere jedno nebo více volných sedadel.
 Tlačítko pro pokračování s rezervací se zobrazí až po výběru alespoň jednoho
 sedadla. Po jeho stisku systém atomicky vytvoří jednu `Reservation` pro
-všechna vybraná sedadla ve stavu `DRAFT` s `hold_until`. Neaktivní
-rezervační relace se po pěti minutách ukončí a aktivní držení přejde do
-`EXPIRED`; serverový `hold_until` je autoritativní.
+všechna vybraná sedadla ve stavu `DRAFT` s `hold_until` přesně 15 minut od
+vytvoření. Přechody mezi kroky, odeslání kontaktních údajů ani validace
+`DRAFT` držení deadline neprodlužují; serverový `hold_until` je autoritativní.
+V rezervačních krocích se odpočet zobrazuje v navbaru a uvádí pouze zbývající
+celé minuty, nikoli formát `MM:SS`.
+Při návratu na výběr sedadel se aktivní nedokončené `DRAFT` rezervace
+aktuálního uživatele pro dané představení zruší a jejich sedadla se ihned
+uvolní. Držení ostatních uživatelů se nemění. Po uplynutí `hold_until`
+aktivní držení přejde do `EXPIRED`.
 
 ### BR-08 — Bulk approval lead time
 Hromadná rezervace musí být vytvořena s dostatečným předstihem před začátkem

@@ -14,7 +14,7 @@ state CANCELLED
 
 DRAFT --> CONFIRMED : confirm (OP-03)\n[počet sedadel ≤ 10\n a není celý sál]
 DRAFT --> PENDING_APPROVAL : confirm (OP-03)\n[počet sedadel > 10\n nebo celý sál]
-DRAFT --> DRAFT : renew hold (OP-01a)\n[vlastník oprávněn a hold_until > now]\n/ hold_until = min(now + 5 min, start)
+DRAFT --> DRAFT : validate hold (OP-01a)\n[při odeslání kontaktních údajů]\n/ hold_until se nemění
 DRAFT --> CANCELLED : cancel (OP-04)\n[now < start (BR-03)]\n/ uvolnit sedadla
 DRAFT --> EXPIRED : hold_until vypršel\n/ uvolnit sedadla
 
@@ -34,9 +34,9 @@ note right of DRAFT
   (atomicky s kontrolou dostupnosti) –
   zabraňuje souběhu dvou uživatelů
   o stejné sedadlo.
-  Aby uživatel neblokoval sedadla
-  donekonečna, po 5 min neaktivity
-  rezervace vyprší (EXPIRED).
+  Hold je pevně 15 minut od vytvoření.
+  Aktivita a přechody mezi kroky
+  deadline neprodlužují.
 end note
 
 note right of PENDING_APPROVAL

@@ -86,7 +86,10 @@ C02 rozšiřuje původní rezervaci jednoho sedadla o skupinové rezervace, ruč
 - Vytvoření rezervace atomicky ověří dostupnost a zablokuje všechna vybraná sedadla ve stavu `DRAFT`.
 - Nejvýše 10 sedadel lze potvrdit přímo. Více než 10 sedadel nebo celý sál vyžaduje schválení, i když má sál méně než 11 sedadel.
 - Hromadná rezervace vyžaduje alespoň 24 hodin do začátku představení při vytvoření i při odeslání ke schválení. Běžnou rezervaci nelze vytvořit ani potvrdit 15 minut před začátkem nebo později.
-- `DRAFT` vyprší po 5 minutách neaktivity. Zaznamenaná aktivita prodlužuje držení; rozhodující je serverový `hold_until`.
+- `DRAFT` drží sedadla přesně 15 minut od vytvoření. Přechody mezi kroky ani
+  odeslání kontaktních údajů držení neprodlužují; rozhodující je serverový
+  `hold_until`. Návrat na výběr sedadel zruší pouze vlastní nedokončená držení
+  pro dané představení.
 - `PENDING_APPROVAL` má lhůtu 24 hodin. Oprávněný schvalovatel může rezervaci schválit nebo zamítnout před vypršením lhůty a začátkem představení.
 - Zrušení je možné před začátkem představení. Opakované zrušení již `CANCELLED` rezervace je idempotentní, také po začátku představení.
 
@@ -94,7 +97,7 @@ C02 rozšiřuje původní rezervaci jednoho sedadla o skupinové rezervace, ruč
 
 `DRAFT`, `PENDING_APPROVAL` a `CONFIRMED` blokují sedadla. Přechod do `CANCELLED`, `REJECTED` nebo `EXPIRED` sedadla uvolní a zachová historii rezervace. Potvrzení ani schválení neopakují kontrolu kolize, protože sedadla jsou blokována od vytvoření.
 
-Služby pokrývají vytvoření, zjištění dostupnosti, potvrzení, zrušení, schválení či zamítnutí, obnovení držení a expiraci. Diagram případů užití přidává schvalovatele a systémový časovač; stavový diagram a diagramy aktivit popisují nové přechody a uvolnění sedadel. Zdroje i obrázky jsou v [docs/diagrams/c02](docs/diagrams/c02/).
+Služby pokrývají vytvoření, zjištění dostupnosti, potvrzení, zrušení, schválení či zamítnutí, validaci držení a expiraci. Diagram případů užití přidává schvalovatele a systémový časovač; stavový diagram a diagramy aktivit popisují nové přechody a uvolnění sedadel. Zdroje i obrázky jsou v [docs/diagrams/c02](docs/diagrams/c02/).
 
 Expiraci lze zpracovat příkazem Django:
 
@@ -115,8 +118,9 @@ Měření využívá izolovanou dočasnou datovou sadu, kterou po skončení bě
 
 ### Ověření a dopad na architekturu
 
-`reservation/tests.py` obsahuje 23 testů služeb bez API a `notification/tests.py`
-obsahuje 24 testů outboxu a dispatcheru (48 testů celkem). Pokrývají například hranici 10/11
+`reservation` obsahuje 44 testů služeb, concurrency a frontendových pohledů a
+`notification/tests.py` obsahuje 24 testů outboxu a dispatcheru (68 testů celkem).
+Pokrývají například hranici 10/11
 sedadel, rezervaci celého malého sálu, předstih 24 hodin, hranici 15 minut,
 expiraci přesně při uplynutí lhůty, neoprávněné změny, neplatný výběr sedadel,
 uvolnění blokování, outbox rollback, retry a lease recovery. Tyto testy samy
@@ -126,7 +130,8 @@ Zůstávají Django ORM, SQLite pro vývoj, intervaly `[start,end)` a pravidlo j
 
 Pro C03 zůstávají témata ověření souběžných rezervací při vyšší zátěži, plánování expirace a napojení notifikací. Podrobnosti jsou v [architektonických rozhodnutích](docs/architecture-and-decisions/) a [evidenci vývoje](docs/evidence-and-evolution/).
 
-Textová specifikace v `docs/intent-and-change/` ještě obsahuje starší hranice schvalování. Přehled v tomto README vychází z diagramů, implementace a dohodnutého pravidla **více než 10 sedadel nebo celý sál**.
+Textová specifikace v `docs/intent-and-change/` a diagramy v `docs/diagrams/`
+popisují stejné aktuální pravidlo **více než 10 sedadel nebo celý sál**.
 
 ## C08 – Frontend
 
@@ -134,5 +139,5 @@ Serverově renderovaný frontend v Django Template Language. Projekt je rozděle
 `backend/` (Django konfigurace `config` a aplikace `reservation`, `notification`) a
 `frontend/` (`templates/` se sdíleným `base.html` a komponentami, `static/` s CSS a JS).
 Průchod: seznam her → termíny hry → výběr sedadel → kontaktní údaje →
-souhrn → potvrzení. Podrobnosti jsou v [architektonických rozhodnutích](docs/architecture-and-decisions.md#c08--frontend)
-a [evidenci](docs/evidence-and-evolution.md#c08--frontend-evidence).
+souhrn → potvrzení. Podrobnosti jsou v [architektonických rozhodnutích](docs/architecture-and-decisions/)
+a [evidenci](docs/evidence-and-evolution/).
