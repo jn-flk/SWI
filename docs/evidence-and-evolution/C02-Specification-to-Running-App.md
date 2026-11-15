@@ -16,7 +16,7 @@ následující podmínky:
 - Hromadná rezervace nebo celý sál musí mít alespoň 24 hodin do začátku
   při vytvoření i při odeslání ke schválení. Schvalovací lhůta je 24 hodin.
 - Vytvoření a potvrzení rezervace jsou odmítnuty při 15 minutách nebo méně
-  do začátku. Platné držení trvá pět minut od poslední zaznamenané aktivity.
+  do začátku. Platné držení trvá přesně 15 minut od vytvoření.
 - Cancel je povolen před začátkem. Opakované zrušení již `CANCELLED`
   rezervace oprávněným aktérem je idempotentní.
 - Confirm ani Approve znovu nekontrolují kolizi; zachovávají blokování

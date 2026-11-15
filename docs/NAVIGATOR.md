@@ -1,7 +1,7 @@
 # Documentation navigator
 
 Rozcestník všech dokumentů projektu Rezervace divadlo. Dokumenty jsou rozdělené
-do čtyř složek podle typu a uvnitř podle cvičení (C01–C07).
+do čtyř složek podle typu a uvnitř podle cvičení (C01–C09).
 
 | Složka | Co v ní je |
 |---|---|
@@ -24,6 +24,8 @@ Pravidla pro úpravy dokumentace (struktura, odkazy, styl) jsou v [AGENTS.md](AG
 | C05 | – | [Detailed Design](architecture-and-decisions/C05-Detailed-Design.md) | [DD Verification Evidence](evidence-and-evolution/C05-DD-Verification.md) |
 | C06 | – | – | [Internal Evidence Assessment](evidence-and-evolution/C06-Internal-Evidence-Assessment.md) |
 | C07 | – | – | [Finding disposition, technical arguments and risk register](evidence-and-evolution/C07-Technical-Review-and-Risk-Register.md) |
+| C08 | [Controlled change](intent-and-change/C08-Controlled-Change.md) | – | – |
+| C09 | – | – | [Implementation, CI and release](evidence-and-evolution/C09-Implementation-CI-Release.md) |
 
 ## Common questions
 
