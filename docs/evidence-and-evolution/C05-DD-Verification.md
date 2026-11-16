@@ -160,3 +160,95 @@ Tato dokumentace C05 a zaměřený diagram `.puml` představují důkazní změn
 pro implementovanou část notifikační služby.
 
 Testy odvozené z DD a tato verifikace: tag `C05` (`5f52864`, merge PR #15).
+
+## Create Reservation — DD verification
+
+Ověření detailního návrhu `create_reservation` z části
+[Create Reservation — detailed design](../architecture-and-decisions/C05-Detailed-Design.md#create-reservation--detailed-design).
+
+### Tests derived from the Create design
+
+| DD element / decision | What must hold? | Test level | Test case |
+|---|---|---|---|
+| Autorizace | Anonymní uživatel rezervaci nevytvoří. | komponentový | `test_anonymous_user_and_other_owner_cannot_change_reservation` |
+| Validace představení | Neexistující představení vrátí `not_found` a nic nezapíše. | komponentový | `test_create_for_unknown_performance_is_rejected` |
+| Validace výběru | Prázdný, duplicitní a neznámý výběr, cizí sál a neaktivní sedadlo jsou odmítnuty bez zápisu. | komponentový | `test_empty_duplicate_and_unknown_seats_are_rejected`, `test_wrong_hall_and_inactive_seat_are_rejected` |
+| Cutoff 15 minut | Přesně 15 minut před začátkem `too_late`, při 15 minutách a 1 sekundě úspěch. | komponentový | `test_create_is_rejected_exactly_fifteen_minutes_before_start` |
+| Předstih 24 h (BR-08) | Hromadná rezervace i celý sál pod 24 h `approval_too_late`, přesně 24 h úspěch. | komponentový | `test_bulk_create_requires_at_least_twenty_four_hours`, `test_entire_hall_create_requires_twenty_four_hours` |
+| Pevný deadline | `hold_until = now + 15 min` a konfigurace má 15 minut. | komponentový | `test_new_draft_holds_seats_exactly_fifteen_minutes` |
+| Lazy expirace a commit při `unavailable` | Prošlé cizí držení přejde do `EXPIRED` i při odmítnutí Create, outbox má `expired` pro vlastníka, nový `DRAFT` notifikaci nemá. | komponentový | `test_create_expires_stale_hold_before_collision_check` |
+| Vše nebo nic | Jedno obsazené sedadlo odmítne celý výběr bez částečné rezervace. | komponentový | `test_one_occupied_seat_rejects_entire_selection` |
+| Persistence | Rezervace se třemi sedadly se načte z DB jako `DRAFT` a blokuje dostupnost. | komponentový | `test_create_confirm_cancel_preserves_history_and_releases_seats` |
+| Atomicita při souběhu | Ze dvou souběžných pokusů o stejné sedadlo uspěje právě jeden. | integrační (2 DB spojení) | `test_concurrent_creation_has_one_winner_for_one_seat` |
+| Zobrazení chyby ve view | Chyba služby i obsazené sedadlo se zobrazí ve formuláři, rezervace nevznikne. | systémový (Django test client) | `test_service_error_is_shown_in_form`, `test_unavailable_seat_cannot_be_reserved` |
+| Validace vstupů kontraktu | Nečíselné, nulové a záporné ID představení vrátí `invalid_id`, čas bez časové zóny `invalid_time`, hra s nulovou délkou `invalid_interval`; nic se nezapíše. | komponentový | `test_create_rejects_invalid_performance_id_and_naive_time`, `test_create_for_play_without_positive_duration_is_rejected` |
+| Překlad `IntegrityError` na `conflict` | Konkurenční alokace vložená po kontrole obsazenosti poruší `unique_active_performance_seat`; Create vrátí `conflict` a celá transakce se vrátí. | komponentový | `test_concurrent_allocation_after_check_is_rolled_back_as_conflict` |
+| Překlad zamčené DB na `busy` | `OperationalError` „database is locked“ uvnitř transakce vrátí `busy` bez zápisu. | komponentový | `test_locked_database_is_reported_as_busy_without_writing` |
+| „Celý sál“ počítá i neaktivní sedadla | Sál se třemi sedadly, z nichž jedno je neaktivní: rezervace dvou aktivních sedadel se potvrdí přímo jako `CONFIRMED`. | komponentový | `test_entire_hall_counts_inactive_seats` |
+
+### Selected test levels
+
+**`test_create_expires_stale_hold_before_collision_check`**
+
+- Selected level: komponentový (`create_reservation` + transakce + skutečná SQLite testovací DB + outbox).
+- Why this level: ověřuje se, co zůstane commitnuto po odmítnutí. To nejde
+  ověřit s mockovanou persistencí.
+- What design decision does this test verify? `unavailable` je vrácený
+  výsledek, ne výjimka v transakci. Expirace a její outbox záznam se proto
+  uloží i při odmítnutí Create.
+
+**`test_concurrent_creation_has_one_winner_for_one_seat`**
+
+- Selected level: integrační, `TransactionTestCase` se dvěma vlákny a dvěma
+  databázovými spojeními synchronizovanými přes `Barrier`.
+- Why this level: atomicitu kontroly obsazenosti a zápisu nelze ověřit
+  v jedné transakci `TestCase`.
+- What design decision does this test verify? Kontrola obsazenosti a zápis
+  alokací jsou jedna transakce s `transaction_mode = IMMEDIATE`, pojištěná
+  constraintem `unique_active_performance_seat`.
+
+### Test sensitivity to design violations
+
+Ověřeno 16. 11. 2026 dočasnou úpravou kódu, po ověření vráceno
+(`git diff` prázdný):
+
+| Porušení návrhu | Testy, které selhaly |
+|---|---|
+| Odstraněna lazy expirace (`_expire_for_performance`) z Create | `test_create_expires_stale_hold_before_collision_check` |
+| Create volá `_check_lead_time` bez příznaku schválení | `test_bulk_create_requires_at_least_twenty_four_hours`, `test_entire_hall_create_requires_twenty_four_hours` |
+| `unavailable` vyhozen jako výjimka uvnitř transakce (expirace se vrátí) | `test_create_expires_stale_hold_before_collision_check` |
+| `RESERVATION_HOLD_MINUTES = 5` (hodnota před C08) | `test_new_draft_holds_seats_exactly_fifteen_minutes` |
+| `_atomic_operation` nepřekládá `IntegrityError` | `test_concurrent_allocation_after_check_is_rolled_back_as_conflict` |
+| `_atomic_operation` nepřekládá zamčenou DB na `busy` | `test_locked_database_is_reported_as_busy_without_writing`, `test_concurrent_creation_has_one_winner_for_one_seat`, `test_concurrent_confirm_has_one_winner_for_one_reservation` |
+| „Celý sál“ počítá jen aktivní sedadla | `test_entire_hall_counts_inactive_seats` |
+| `_now` přijme čas bez časové zóny | `test_create_rejects_invalid_performance_id_and_naive_time` |
+
+Selhání obou souběžných testů po vypnutí překladu na `busy` ukazuje, že
+souběžné běhy nad SQLite zámek skutečně vyvolávají.
+
+### Design ↔ implementation mismatch
+
+| DD decision | Implemented? | Evidence | Action |
+|---|---|---|---|
+| Pořadí kontrol a chybové kódy podle kontraktu | ANO | `reservation/services.py:create_reservation`, `_seats`, `_check_lead_time`; testy výše | zachovat |
+| Lazy expirace a commit expirací při `unavailable` | ANO | `_atomic_operation`, `_expire_for_performance`; `test_create_expires_stale_hold_before_collision_check` | zachovat |
+| Pevný `hold_until` 15 minut | ANO | `settings.RESERVATION_HOLD_MINUTES`; `test_new_draft_holds_seats_exactly_fifteen_minutes` | zachovat |
+| Kódy `invalid_id`, `invalid_time`, `invalid_interval` | ANO | `_performance`, `_now`; `test_create_rejects_invalid_performance_id_and_naive_time`, `test_create_for_play_without_positive_duration_is_rejected` | zachovat |
+| `conflict` po porušení constraintu, rollback celé transakce | ANO | `_atomic_operation`; `test_concurrent_allocation_after_check_is_rolled_back_as_conflict` | zachovat |
+| `busy` při zamčené DB | ANO | `_atomic_operation`; `test_locked_database_is_reported_as_busy_without_writing` (simulovaná chyba), souběžné testy (skutečný zámek SQLite) | zachovat; skutečné vypršení `timeout = 20 s` se netestuje |
+| „Celý sál“ počítá i neaktivní sedadla | ANO | `_requires_approval` (`hall.seats.count()`); `test_entire_hall_counts_inactive_seats` | zachovat |
+
+### Executed tests
+
+Spuštěno 16. 11. 2026 na Linuxu, Python 3.14.10, Django 6.1.2, nad
+pracovním stromem větve `c10-after-presentation-doc-revision` (základ
+`be0b3be`, změny zatím necommitnuté):
+
+```text
+python src/rezervace_divadlo/manage.py test notification reservation
+Found 77 test(s).
+System check identified no issues (0 silenced).
+Ran 77 tests in 2.162s
+
+OK
+```

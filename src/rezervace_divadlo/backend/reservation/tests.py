@@ -4,6 +4,7 @@ from unittest.mock import Mock, patch
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser, Permission
+from django.db import OperationalError
 from django.test import TestCase, TransactionTestCase
 from django.utils import timezone
 
@@ -11,7 +12,7 @@ from notification.dispatcher import dispatch_notifications
 from notification.models import NotificationRequest
 
 from . import services
-from .models import Hall, Performance, Play, Reservation, Seat
+from .models import Hall, Performance, Play, Reservation, ReservationSeat, Seat
 from .services import (
     ReservationError,
     approve_reservation,
@@ -112,6 +113,114 @@ class ReservationTests(ReservationFixture, TestCase):
         self.performance.start_at += timedelta(seconds=1)
         self.performance.save()
         self.assertEqual(self.create(11).status, Reservation.Status.DRAFT)
+
+    def test_entire_hall_create_requires_twenty_four_hours(self):
+        Seat.objects.filter(hall=self.hall, number__gt=2).delete()
+        self.performance.start_at = self.now + timedelta(hours=24, seconds=-1)
+        self.performance.save()
+        with self.assertRaises(ReservationError) as error:
+            self.create(2)
+        self.assertEqual(error.exception.code, "approval_too_late")
+        self.performance.start_at += timedelta(seconds=1)
+        self.performance.save()
+        self.assertEqual(self.create(2).status, Reservation.Status.DRAFT)
+
+    def test_new_draft_holds_seats_exactly_fifteen_minutes(self):
+        self.assertEqual(settings.RESERVATION_HOLD_MINUTES, 15)
+        reservation = Reservation.objects.get(pk=self.create().pk)
+        self.assertEqual(reservation.hold_until, self.now + timedelta(minutes=15))
+
+    def test_create_for_unknown_performance_is_rejected(self):
+        with self.assertRaises(ReservationError) as error:
+            create_reservation(self.user, 999999, [self.seats[0].pk], now=self.now)
+        self.assertEqual(error.exception.code, "not_found")
+        self.assertEqual(Reservation.objects.count(), 0)
+
+    def test_create_expires_stale_hold_before_collision_check(self):
+        stale = create_reservation(
+            self.other_user, self.performance.pk, [self.seats[0].pk], now=self.now
+        )
+        later = stale.hold_until
+        create_reservation(
+            self.other_user, self.performance.pk, [self.seats[1].pk],
+            now=later - timedelta(minutes=1),
+        )
+        with self.assertRaises(ReservationError) as error:
+            create_reservation(
+                self.user, self.performance.pk, [self.seats[0].pk, self.seats[1].pk], now=later
+            )
+        self.assertEqual(error.exception.code, "unavailable")
+        stale.refresh_from_db()
+        self.assertEqual(stale.status, Reservation.Status.EXPIRED)
+        self.assertEqual(
+            [(item.event, item.payload["audience"])
+             for item in NotificationRequest.objects.filter(reservation_id=stale.pk)],
+            [("expired", "owner")],
+        )
+        reservation = create_reservation(
+            self.user, self.performance.pk, [self.seats[0].pk], now=later
+        )
+        self.assertEqual(reservation.status, Reservation.Status.DRAFT)
+        self.assertFalse(NotificationRequest.objects.filter(reservation_id=reservation.pk).exists())
+
+    def test_create_rejects_invalid_performance_id_and_naive_time(self):
+        seat_ids = [self.seats[0].pk]
+        for performance_id in ("1", 0, -1):
+            with self.subTest(performance_id=performance_id):
+                with self.assertRaises(ReservationError) as error:
+                    create_reservation(self.user, performance_id, seat_ids, now=self.now)
+                self.assertEqual(error.exception.code, "invalid_id")
+        with self.assertRaises(ReservationError) as error:
+            create_reservation(
+                self.user, self.performance.pk, seat_ids, now=self.now.replace(tzinfo=None)
+            )
+        self.assertEqual(error.exception.code, "invalid_time")
+        self.assertEqual(Reservation.objects.count(), 0)
+
+    def test_create_for_play_without_positive_duration_is_rejected(self):
+        self.play.duration = timedelta(0)
+        self.play.save()
+        with self.assertRaises(ReservationError) as error:
+            self.create()
+        self.assertEqual(error.exception.code, "invalid_interval")
+        self.assertEqual(Reservation.objects.count(), 0)
+
+    def test_concurrent_allocation_after_check_is_rolled_back_as_conflict(self):
+        real_create = Reservation.objects.create
+
+        def create_after_competitor(**kwargs):
+            # Simulates another writer inserting the same seat after our availability check.
+            competitor = real_create(
+                owner=self.other_user, performance=self.performance,
+                status=Reservation.Status.DRAFT, hold_until=kwargs["hold_until"],
+            )
+            ReservationSeat.objects.create(
+                reservation=competitor, performance=self.performance, seat=self.seats[0]
+            )
+            return real_create(**kwargs)
+
+        with patch.object(Reservation.objects, "create", side_effect=create_after_competitor):
+            with self.assertRaises(ReservationError) as error:
+                self.create()
+        self.assertEqual(error.exception.code, "conflict")
+        self.assertEqual(Reservation.objects.count(), 0)
+        self.assertEqual(ReservationSeat.objects.count(), 0)
+
+    def test_locked_database_is_reported_as_busy_without_writing(self):
+        locked = OperationalError("database is locked")
+        with patch.object(services, "_expire_for_performance", side_effect=locked):
+            with self.assertRaises(ReservationError) as error:
+                self.create()
+        self.assertEqual(error.exception.code, "busy")
+        self.assertEqual(Reservation.objects.count(), 0)
+
+    def test_entire_hall_counts_inactive_seats(self):
+        Seat.objects.filter(hall=self.hall, number__gt=3).delete()
+        self.seats[2].is_active = False
+        self.seats[2].save()
+        reservation = self.create(2)
+        result = confirm_reservation(self.user, reservation.pk, now=self.now)
+        self.assertEqual(result.status, Reservation.Status.CONFIRMED)
 
     def test_bulk_confirm_also_requires_twenty_four_hours(self):
         self.performance.start_at = self.now + timedelta(hours=24, seconds=1)

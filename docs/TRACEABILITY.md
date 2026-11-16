@@ -15,7 +15,7 @@ Testy: [tests.py](../src/rezervace_divadlo/backend/reservation/tests.py),
 
 | Požadavek | Operace | Pravidla | Kód | Testy |
 |---|---|---|---|---|
-| **REQ-01** — Create vytvoří jednu `DRAFT` pro všechna volná sedadla | OP-01 (Create Reservation) | BR-02, BR-05, BR-07, BR-08 | `create_reservation`, `_check_lead_time` | `test_create_confirm_cancel_preserves_history_and_releases_seats`, `test_empty_duplicate_and_unknown_seats_are_rejected`, `test_wrong_hall_and_inactive_seat_are_rejected`, `test_one_occupied_seat_rejects_entire_selection`, `test_create_is_rejected_exactly_fifteen_minutes_before_start`, `test_bulk_create_requires_at_least_twenty_four_hours`, `test_concurrent_creation_has_one_winner_for_one_seat` |
+| **REQ-01** — Create vytvoří jednu `DRAFT` pro všechna volná sedadla | OP-01 (Create Reservation) | BR-02, BR-05, BR-06, BR-07, BR-08 | `create_reservation`, `_check_lead_time`, `_expire_for_performance` | `test_create_confirm_cancel_preserves_history_and_releases_seats`, `test_empty_duplicate_and_unknown_seats_are_rejected`, `test_wrong_hall_and_inactive_seat_are_rejected`, `test_create_for_unknown_performance_is_rejected`, `test_one_occupied_seat_rejects_entire_selection`, `test_create_is_rejected_exactly_fifteen_minutes_before_start`, `test_bulk_create_requires_at_least_twenty_four_hours`, `test_entire_hall_create_requires_twenty_four_hours`, `test_new_draft_holds_seats_exactly_fifteen_minutes`, `test_create_expires_stale_hold_before_collision_check`, `test_create_rejects_invalid_performance_id_and_naive_time`, `test_create_for_play_without_positive_duration_is_rejected`, `test_concurrent_allocation_after_check_is_rolled_back_as_conflict`, `test_locked_database_is_reported_as_busy_without_writing`, `test_entire_hall_counts_inactive_seats`, `test_concurrent_creation_has_one_winner_for_one_seat`; detailní návrh a DD verifikace v [C05](architecture-and-decisions/C05-Detailed-Design.md#create-reservation--detailed-design) |
 | **REQ-02** — dostupnost podle aktivních rezervací | OP-02 (Check Availability) | BR-01, BR-05 | `check_availability` | `test_availability_treats_touching_intervals_as_available`, `test_one_occupied_seat_rejects_entire_selection` |
 | **REQ-03** — Confirm vede na `CONFIRMED` nebo `PENDING_APPROVAL` | OP-03 (Confirm Reservation) | BR-04, BR-08 | `confirm_reservation`, `_requires_approval`, `_check_lead_time` | `test_ten_seats_confirm_directly_but_eleven_require_approval`, `test_entire_small_hall_requires_approval`, `test_bulk_confirm_also_requires_twenty_four_hours`, `test_confirm_at_hold_deadline_expires_reservation`, `test_confirm_with_seat_deactivated_after_create_is_rejected` |
 | **REQ-04** — souběžné potvrzení má jednoho vítěze | OP-03 (Confirm Reservation) | BR-06 | `confirm_reservation` v transakci `_atomic_operation` | `test_concurrent_confirm_has_one_winner_for_one_reservation`, `test_confirm_cannot_be_repeated` (sekvenčně) |
@@ -39,15 +39,16 @@ Chování ze specifikace, které žádný test neověřuje:
 - zrušení rezervace ve stavu `PENDING_APPROVAL` (REQ-05);
 - odmítnutí zrušení `REJECTED` nebo `EXPIRED` rezervace (BR-03);
 - souběh schválení, zamítnutí, zrušení a expirace (BR-06);
-- přesná hranice 15 minut od vytvoření je ověřena přes parametrizovaný test
-  nastavení hold duration; UI zobrazuje pouze zbývající celé minuty.
+- UI zobrazuje pouze zbývající celé minuty; formát odpočtu v navbaru žádný
+  test neověřuje. Přesnou hranici 15 minut od vytvoření ověřuje
+  `test_new_draft_holds_seats_exactly_fifteen_minutes`.
 
 
 ## C08/C09 acceptance conditions
 
 | Podmínka | Kód | Test nebo evidence |
 |---|---|---|
-| AC-01 — pevný deadline 15 minut od vytvoření | `create_reservation`, `settings.RESERVATION_HOLD_MINUTES` | `test_create_confirm_cancel_preserves_history_and_releases_seats`; [C08](intent-and-change/C08-Controlled-Change.md) |
+| AC-01 — pevný deadline 15 minut od vytvoření | `create_reservation`, `settings.RESERVATION_HOLD_MINUTES` | `test_new_draft_holds_seats_exactly_fifteen_minutes`; [C08](intent-and-change/C08-Controlled-Change.md) |
 | AC-02 — aktivita deadline neprodlouží | `touch_reservation`, kontaktní view | `test_activity_does_not_extend_hold_and_expiration_is_idempotent`, `test_submitting_contact_details_keeps_fixed_hold` |
 | AC-03 — expirace na hranici uvolní alokace | `_expire_one`, `confirm_reservation` | `test_confirm_at_hold_deadline_expires_reservation` |
 | AC-04 — návrat ruší jen vlastní hold | `release_draft_reservations` | `test_returning_to_seat_selection_releases_own_active_hold`, `test_returning_to_seat_selection_keeps_other_users_hold` |

@@ -9,14 +9,25 @@ if (Uživatel je oprávněn\nvytvářet rezervace?) then (ne)
   :Odmítnout;\nrezervace nevznikne;
   stop
 endif
-if (Představení existuje\na ještě nezačalo?) then (ne)
+if (Představení existuje?) then (ne)
   :Odmítnout;\nrezervace nevznikne;
   stop
 endif
-if (Sedadla existují, patří do sálu\npředstavení a jsou aktivní?) then (ne)
+if (Výběr není prázdný a nemá duplicity;\nsedadla existují, patří do sálu\npředstavení a jsou aktivní?) then (ne)
   :Odmítnout;\nrezervace nevznikne;
   stop
 endif
+if (Do začátku zbývá více než 15 min?) then (ne)
+  :Odmítnout – pozdě (cutoff);\nrezervace nevznikne;
+  stop
+endif
+if (Více než 10 sedadel nebo celý sál?) then (ano)
+  if (Do začátku zbývá alespoň 24 h? (BR-08)) then (ne)
+    :Odmítnout – málo času na schválení;\nrezervace nevznikne;
+    stop
+  endif
+endif
+:Atomicky expirovat prošlé DRAFT / PENDING_APPROVAL\npředstavení (→ EXPIRED, uvolnit sedadla,\noutbox event expired);
 if (Některé sedadlo blokuje jiná rezervace\n(DRAFT / PENDING_APPROVAL / CONFIRMED)?) then (ano)
   :Odmítnout – sedadlo obsazené;\nrezervace nevznikne;
   stop

@@ -10,7 +10,7 @@ state REJECTED
 state EXPIRED
 state CANCELLED
 
-[*] --> DRAFT : create (OP-01)\n[sedadla volná a aktivní]\n/ zablokovat sedadla
+[*] --> DRAFT : create (OP-01)\n[sedadla volná a aktivní,\n do začátku > 15 min,\n hromadná nebo celý sál ≥ 24 h]\n/ zablokovat sedadla
 
 DRAFT --> CONFIRMED : confirm (OP-03)\n[počet sedadel ≤ 10\n a není celý sál]
 DRAFT --> PENDING_APPROVAL : confirm (OP-03)\n[počet sedadel > 10\n nebo celý sál]

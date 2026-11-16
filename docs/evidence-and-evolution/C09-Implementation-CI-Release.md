@@ -109,6 +109,37 @@ OK
 Lokální výsledek je **READY**, protože všechny požadované důkazy
 jsou reprodukovatelné; peer review C08 zůstává jediným otevřeným hodnocením.
 
+### Re-verification with extended tests
+
+Dodatek z 16. 11. 2026 (C10). Výše uvedený záznam pro `06e7a87` platí
+beze změny. Po vydání přibylo 9 testů funkce Create (`create_reservation`),
+odvozených z jejího detailního návrhu v
+[C05](../architecture-and-decisions/C05-Detailed-Design.md#create-reservation--detailed-design).
+Produkční kód se nezměnil; změněn je pouze `reservation/tests.py`.
+AC-01 má nově přímý test `test_new_draft_holds_seats_exactly_fifteen_minutes`.
+Ten na rozdíl od původního testu odhalí i návrat konfigurace na 5 minut.
+
+Spuštěno nad pracovním stromem větve `c10-after-presentation-doc-revision`
+(základ `be0b3be`), Linux, Python 3.14.10, Django 6.1.2. Místo `migrate`
+byly použity kontroly bez zápisu do lokální databáze:
+
+```text
+python src/rezervace_divadlo/manage.py migrate --check          # exit 0
+python src/rezervace_divadlo/manage.py makemigrations --check --dry-run
+No changes detected
+python src/rezervace_divadlo/manage.py check
+System check identified no issues (0 silenced).
+python src/rezervace_divadlo/manage.py test notification reservation
+Found 77 test(s).
+Ran 77 tests in 2.176s
+OK
+```
+
+Výsledek zůstává **READY**: schéma ani migrace se nemění a rozšířená sada
+prochází. Prostředí neodpovídá uzamčenému `requirements.txt` (Python 3.12,
+Django 6.1.1); běh CI v uzamčeném prostředí je NOT VERIFIED, dokud nebude
+změna pushnuta.
+
 Schéma zůstává na migracích `reservation.0001` a `reservation.0002`.
 Rollback nevyžaduje migraci: návrat na předchozí commit obnoví původní kód,
 ale může znovu povolit obnovování držení, proto se musí vrátit i odpovídající
