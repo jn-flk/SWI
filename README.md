@@ -42,10 +42,15 @@ venv\Scripts\Activate.ps1
 Dál stejně na obou systémech:
 
 ```bash
-pip install django
+python -m pip install -r requirements.txt
 python src/rezervace_divadlo/manage.py migrate
+python src/rezervace_divadlo/manage.py check
 python src/rezervace_divadlo/manage.py test notification reservation
 ```
+
+Po čistém checkoutu stačí stejný postup; není potřeba kopírovat lokální
+databázi ani jiné soubory mimo repozitář. CI spouští stejný build a testovací
+postup v [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 
 Frontend s ukázkovými daty na http://127.0.0.1:8000/ (přihlášení `demo` / `demo`, nebo nový účet přes Registraci):
 

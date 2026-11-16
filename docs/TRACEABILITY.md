@@ -41,3 +41,14 @@ Chování ze specifikace, které žádný test neověřuje:
 - souběh schválení, zamítnutí, zrušení a expirace (BR-06);
 - přesná hranice 15 minut od vytvoření je ověřena přes parametrizovaný test
   nastavení hold duration; UI zobrazuje pouze zbývající celé minuty.
+
+
+## C08/C09 acceptance conditions
+
+| Podmínka | Kód | Test nebo evidence |
+|---|---|---|
+| AC-01 — pevný deadline 15 minut od vytvoření | `create_reservation`, `settings.RESERVATION_HOLD_MINUTES` | `test_create_confirm_cancel_preserves_history_and_releases_seats`; [C08](intent-and-change/C08-Controlled-Change.md) |
+| AC-02 — aktivita deadline neprodlouží | `touch_reservation`, kontaktní view | `test_activity_does_not_extend_hold_and_expiration_is_idempotent`, `test_submitting_contact_details_keeps_fixed_hold` |
+| AC-03 — expirace na hranici uvolní alokace | `_expire_one`, `confirm_reservation` | `test_confirm_at_hold_deadline_expires_reservation` |
+| AC-04 — návrat ruší jen vlastní hold | `release_draft_reservations` | `test_returning_to_seat_selection_releases_own_active_hold`, `test_returning_to_seat_selection_keeps_other_users_hold` |
+| AC-05 — regrese lifecycle a souběhu | rezervační služby a constrainty | `reservation/tests.py`, `reservation/tests_concurrency.py`; [C09 evidence](evidence-and-evolution/C09-Implementation-CI-Release.md) |
