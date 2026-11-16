@@ -1,0 +1,45 @@
+@startuml
+title C05 - Vytvoření rezervace (create_reservation)
+hide footbox
+autonumber
+
+actor "Návštěvník" as V
+participant "seat_selection\n(view)" as View
+participant "SeatSelectionForm" as Form
+participant "reservation.services" as RS
+database "SQLite\n(transaction_mode = IMMEDIATE)" as DB
+participant "record_notification\n(outbox)" as NO
+
+V -> View : POST vybraná sedadla
+View -> RS : expire_reservations(performance)
+View -> Form : validovat proti volným sedadlům
+alt sedadlo už není volné
+  Form --> View : chyba formuláře
+  View --> V : výběr znovu, služba se nevolá
+else výběr platný
+  View -> RS : create_reservation(user, performance, seats)
+  RS -> DB : _atomic_operation: BEGIN IMMEDIATE (zápisový zámek)
+  RS -> RS : ověřit aktéra, představení, now, sedadla
+  RS -> RS : cutoff 15 min; > 10 sedadel nebo celý sál -> 24 h
+  RS -> DB : prošlé DRAFT / PENDING_APPROVAL -> EXPIRED,\nalokace active = False
+  RS -> NO : event expired pro každou expiraci
+  NO -> DB : INSERT NotificationRequest
+  RS -> DB : existuje aktivní alokace vybraného sedadla?
+  alt obsazeno
+    RS -> DB : COMMIT (jen expirace)
+    RS --> View : ReservationError unavailable
+    View --> V : chyba ve formuláři
+  else volno
+    RS -> DB : INSERT Reservation (DRAFT,\nhold_until = now + 15 min)
+    RS -> DB : INSERT ReservationSeat (active) pro každé sedadlo
+    alt porušen unique_active_performance_seat
+      RS -> DB : ROLLBACK
+      RS --> View : ReservationError conflict
+    else
+      RS -> DB : COMMIT
+      RS --> View : Reservation (DRAFT)
+      View --> V : přesměrování na kontaktní údaje
+    end
+  end
+end
+@enduml

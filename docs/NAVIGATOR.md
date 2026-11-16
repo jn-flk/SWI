@@ -40,6 +40,7 @@ Pravidla pro úpravy dokumentace (struktura, odkazy, styl) jsou v [AGENTS.md](AG
 | nálezy F1–F3 a jejich vypořádání | [Assessment C06](evidence-and-evolution/C06-Internal-Evidence-Assessment.md), [vypořádání v C07](evidence-and-evolution/C07-Technical-Review-and-Risk-Register.md) |
 | rizika R-01 až R-04 | část B v [C07](evidence-and-evolution/C07-Technical-Review-and-Risk-Register.md) |
 | aktuální běh testů | část A v [C07](evidence-and-evolution/C07-Technical-Review-and-Risk-Register.md) |
+| jednu metodu (Create, `create_reservation`) napříč všemi vrstvami | specifikace OP-01 v [Operations](intent-and-change/C02-Operations-and-Requirements.md), [diagram aktivit](diagrams/c02/activity-op01-create.puml), [vlastnictví přechodů (G3)](diagrams/c03/state-ownership.puml), [detailní návrh](architecture-and-decisions/C05-Detailed-Design.md#create-reservation--detailed-design), [DD verifikace](evidence-and-evolution/C05-DD-Verification.md#create-reservation--dd-verification), změna hold v [C08](intent-and-change/C08-Controlled-Change.md), REQ-01 v [Traceability](TRACEABILITY.md) |
 
 ## Diagrams
 
@@ -74,6 +75,7 @@ Pravidla pro úpravy dokumentace (struktura, odkazy, styl) jsou v [AGENTS.md](AG
 | Diagram | Obrázek | Zdroj |
 |---|---|---|
 | Doručování notifikací přes outbox | [c05-notification-outbox.png](diagrams/c05/c05-notification-outbox.png) | [c05-notification-outbox.puml](diagrams/c05/c05-notification-outbox.puml) |
+| Sekvence vytvoření rezervace (OP-01) | – (zatím nevyrenderováno) | [c05-create-reservation.puml](diagrams/c05/c05-create-reservation.puml) |
 
 ## Code and tests
 

@@ -42,6 +42,7 @@ není drženo, čeká na schválení ani potvrzeno pro stejné představení.
 - BR-01 (Interval semantics)
 - BR-02 (Exclusive Resource invariant)
 - BR-05 (Availability policy)
+- BR-06 (Concurrent outcome)
 - BR-07 (Fixed hold and return-to-selection policy)
 - BR-08 (Bulk approval lead time)
 
@@ -57,10 +58,19 @@ není drženo, čeká na schválení ani potvrzeno pro stejné představení.
 
 ### Alternative / failure outcomes
 - neoprávněný uživatel -> odmítnout, rezervace nevznikne;
+- neexistující představení -> odmítnout, rezervace nevznikne;
+- prázdný výběr nebo duplicitní sedadla -> odmítnout, rezervace nevznikne;
 - neznámé sedadlo nebo sedadlo mimo sál -> odmítnout, rezervace nevznikne;
+- neaktivní sedadlo -> odmítnout, rezervace nevznikne;
+- do začátku zbývá 15 minut nebo méně -> odmítnout, rezervace nevznikne;
+- více než 10 sedadel nebo celý sál a do začátku zbývá méně než 24 hodin
+   (BR-08) -> odmítnout, rezervace nevznikne;
 - některé sedadlo už drží, čeká na schválení nebo je potvrzené -> odmítnout,
    rezervace nevznikne;
-- vypršené držení -> odmítnout nebo nejdříve atomicky uvolnit;
+- vypršené držení jiné rezervace -> systém ho před kontrolou kolize atomicky
+   nastaví na `EXPIRED`, uvolní jeho sedadla a zapíše outbox event `expired`
+   pro jeho vlastníka; expirace zůstane uložena i při odmítnutí Create.
+   Samotné vytvoření `DRAFT` žádnou notifikaci nezapisuje;
 - návrat vlastníka na výběr sedadel pro stejné představení -> jeho aktivní
    nedokončená držení se nastaví na `CANCELLED` a sedadla se ihned uvolní;
    držení jiných uživatelů se nezmění;
@@ -73,7 +83,6 @@ není drženo, čeká na schválení ani potvrzeno pro stejné představení.
 - uplynutí 15 minut od vytvoření -> `DRAFT -> EXPIRED` a dostupnost se obnoví;
 - návrat vlastníka na výběr -> vlastní `DRAFT` se zruší a sedadla se ihned
   uvolní;
-- `start == end` -> odmítnuto;
 - neznámé sedadlo -> odmítnuto.
 
 ## OP-01a — Validate Reservation Hold

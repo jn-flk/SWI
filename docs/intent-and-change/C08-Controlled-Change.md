@@ -97,6 +97,7 @@ ověřeno testem
 |---|---|---|---|---|
 | `54de0e2` (before) | Windows, venv, Python 3.12, Django 6.1.1 | `python src/rezervace_divadlo/manage.py test notification reservation` | `Ran 68 tests`, `OK` | Spustil Honza; Spustil Honza 2026-11-04. |
 | `06e7a87` (after, kód shodný s `a355983`) | Windows, venv, Python 3.12, Django 6.1.1 | `python src/rezervace_divadlo/manage.py test notification reservation` | `Ran 68 tests`, `OK` | Spustil Honza 2026-11-15; výstup v [C09](../evidence-and-evolution/C09-Implementation-CI-Release.md#test-run). |
+| pracovní strom nad `be0b3be` (C10, rozšířená sada testů, produkční kód beze změny) | Linux, venv, Python 3.14.10, Django 6.1.2 | `python src/rezervace_divadlo/manage.py test notification reservation` | `Ran 77 tests`, `OK` | Spuštěno 2026-11-16; výstup v [C09](../evidence-and-evolution/C09-Implementation-CI-Release.md#re-verification-with-extended-tests). Prostředí neodpovídá uzamčenému `requirements.txt`; běh CI s Pythonem 3.12 a Django 6.1.1: NOT VERIFIED. |
 
 ## Impact matrix
 
