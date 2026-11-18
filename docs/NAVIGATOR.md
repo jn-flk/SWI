@@ -1,7 +1,7 @@
 # Documentation navigator
 
 Rozcestník všech dokumentů projektu Rezervace divadlo. Dokumenty jsou rozdělené
-do čtyř složek podle typu a uvnitř podle cvičení (C01–C09).
+do čtyř složek podle typu a uvnitř podle cvičení (C01–C10).
 
 | Složka | Co v ní je |
 |---|---|
@@ -26,6 +26,7 @@ Pravidla pro úpravy dokumentace (struktura, odkazy, styl) jsou v [AGENTS.md](AG
 | C07 | – | – | [Finding disposition, technical arguments and risk register](evidence-and-evolution/C07-Technical-Review-and-Risk-Register.md) |
 | C08 | [Controlled change](intent-and-change/C08-Controlled-Change.md) | – | – |
 | C09 | – | – | [Implementation, CI and release](evidence-and-evolution/C09-Implementation-CI-Release.md) |
+| C10 | – | [Logging detail](architecture-and-decisions/C10-Logging-Detail.md) | [Operations and logs](evidence-and-evolution/C10-Operations-and-Logs.md) |
 
 ## Common questions
 
@@ -40,6 +41,7 @@ Pravidla pro úpravy dokumentace (struktura, odkazy, styl) jsou v [AGENTS.md](AG
 | nálezy F1–F3 a jejich vypořádání | [Assessment C06](evidence-and-evolution/C06-Internal-Evidence-Assessment.md), [vypořádání v C07](evidence-and-evolution/C07-Technical-Review-and-Risk-Register.md) |
 | rizika R-01 až R-04 | část B v [C07](evidence-and-evolution/C07-Technical-Review-and-Risk-Register.md) |
 | aktuální běh testů | část A v [C07](evidence-and-evolution/C07-Technical-Review-and-Risk-Register.md) |
+| které události se logují, kde a proč | [Logging detail](architecture-and-decisions/C10-Logging-Detail.md) |
 
 ## Diagrams
 

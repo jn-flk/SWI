@@ -144,10 +144,31 @@ RESERVATION_CUTOFF_MINUTES = 15
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
-    'handlers': {'console': {'class': 'logging.StreamHandler'}},
+    'formatters': {
+        'plain': {'format': '%(asctime)s %(levelname)s %(name)s %(message)s'},
+    },
+    'handlers': {
+        'file': {
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / 'app.log',  # gitignored via *.log
+            'formatter': 'plain',
+        },
+    },
     'loggers': {
         'notification': {
-            'handlers': ['console'], 'level': 'INFO', 'propagate': False,
+            'handlers': ['file'], 'level': 'INFO', 'propagate': False,
+        },
+        # Business rejections (ReservationError) are not logged; only technical problems.
+        'reservation': {
+            'handlers': ['file'], 'level': 'WARNING', 'propagate': False,
+        },
+        # App start line and dependency config checks (config/startup.py).
+        'config': {
+            'handlers': ['file'], 'level': 'INFO', 'propagate': False,
+        },
+        # Unhandled exceptions (HTTP 500) are recorded even with DEBUG=False.
+        'django.request': {
+            'handlers': ['file'], 'level': 'ERROR', 'propagate': False,
         },
     },
 }

@@ -6,6 +6,7 @@ Receivers must deduplicate by message.id (also the HTTP Idempotency-Key).
 
 import json
 import logging
+import time
 from dataclasses import dataclass
 from typing import Protocol
 from urllib.request import Request, urlopen
@@ -31,8 +32,11 @@ class LoggingSender:
     """Development sink: SENT means logged locally, not externally delivered."""
 
     def send(self, message: NotificationMessage) -> None:
-        logger.info("Notification %s: reservation=%s event=%s payload=%s",
-                    message.id, message.reservation_id, message.event, message.payload)
+        logger.info(
+            "operation=send_notification notification=%s reservation=%s event=%s "
+            "payload=%s outcome=logged_locally",
+            message.id, message.reservation_id, message.event, message.payload,
+        )
 
 
 class HttpSender:
@@ -52,6 +56,15 @@ class HttpSender:
             "Content-Type": "application/json",
             "Idempotency-Key": message.id,
         })
+        started = time.monotonic()
         with urlopen(request, timeout=settings.NOTIFICATION_TIMEOUT_SECONDS) as response:
             if not 200 <= response.status < 300:
                 raise RuntimeError(f"Notification service returned HTTP {response.status}")
+        elapsed = time.monotonic() - started
+        # Failures are logged by the dispatcher; here only flag a degrading dependency.
+        if elapsed > settings.NOTIFICATION_TIMEOUT_SECONDS / 2:
+            logger.warning(
+                "operation=send_notification notification=%s failure=slow_response "
+                "detail=%.2fs outcome=sent",
+                message.id, elapsed,
+            )
