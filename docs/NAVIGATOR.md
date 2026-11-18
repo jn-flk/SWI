@@ -26,7 +26,7 @@ Pravidla pro úpravy dokumentace (struktura, odkazy, styl) jsou v [AGENTS.md](AG
 | C07 | – | – | [Finding disposition, technical arguments and risk register](evidence-and-evolution/C07-Technical-Review-and-Risk-Register.md) |
 | C08 | [Controlled change](intent-and-change/C08-Controlled-Change.md) | – | – |
 | C09 | – | – | [Implementation, CI and release](evidence-and-evolution/C09-Implementation-CI-Release.md) |
-| C10 | – | [Logging detail](architecture-and-decisions/C10-Logging-Detail.md) | – |
+| C10 | – | [Logging detail](architecture-and-decisions/C10-Logging-Detail.md) | [Operations and logs](evidence-and-evolution/C10-Operations-and-Logs.md) |
 
 ## Common questions
 
