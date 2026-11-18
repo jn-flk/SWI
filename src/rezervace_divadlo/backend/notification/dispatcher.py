@@ -98,7 +98,18 @@ def dispatch_notifications(*, batch_size=100, sender: NotificationSender | None 
             )
             if updated:
                 counts["failed" if exhausted else "retried"] += 1
-            logger.warning("Notification %s attempt %s failed: %s", item.pk, item.attempts, error)
+            if exhausted:
+                logger.error(
+                    "operation=dispatch_notification notification=%s attempt=%s "
+                    "failure=%s detail=%s outcome=failed_permanently",
+                    item.pk, item.attempts, type(error).__name__, error,
+                )
+            else:
+                logger.warning(
+                    "operation=dispatch_notification notification=%s attempt=%s "
+                    "failure=%s detail=%s outcome=retry_scheduled",
+                    item.pk, item.attempts, type(error).__name__, error,
+                )
         else:
             updated = owned.update(
                 status=NotificationRequest.Status.SENT, sent_at=timezone.now(),

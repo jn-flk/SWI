@@ -1,5 +1,6 @@
 """Reservation use cases. All application writes must go through this module."""
 
+import logging
 from datetime import timedelta
 from functools import wraps
 
@@ -15,11 +16,20 @@ from .models import Performance, Reservation, ReservationSeat, Seat
 Status = Reservation.Status
 ACTIVE_STATUSES = (Status.DRAFT, Status.PENDING_APPROVAL, Status.CONFIRMED)
 
+logger = logging.getLogger(__name__)
+
 
 class ReservationError(Exception):
     def __init__(self, code, message):
         self.code = code
         super().__init__(message)
+
+
+def _is_seat_conflict(error):
+    """True for the expected unique_active_performance_seat violation (SQLite or PostgreSQL)."""
+    text = str(error).lower()
+    return ("unique_active_performance_seat" in text
+            or "reservationseat.performance_id, reservation_reservationseat.seat_id" in text)
 
 
 def _atomic_operation(function):
@@ -30,10 +40,25 @@ def _atomic_operation(function):
             with transaction.atomic():
                 result = function(*args, **kwargs)
         except IntegrityError as error:
+            if not _is_seat_conflict(error):
+                # Not the expected double-booking: a constraint that the service
+                # checks should have prevented failed, i.e. a bug or corrupt data.
+                logger.error(
+                    "operation=%s failure=unexpected_integrity_error detail=%s outcome=rolled_back",
+                    function.__name__, error,
+                )
             raise ReservationError("conflict", "Sedadla již nejsou dostupná.") from error
         except OperationalError as error:
             if "locked" not in str(error).lower():
+                logger.error(
+                    "operation=%s failure=%s detail=%s outcome=rolled_back",
+                    function.__name__, type(error).__name__, error,
+                )
                 raise
+            logger.warning(
+                "operation=%s failure=database_locked outcome=rejected_retry_later",
+                function.__name__,
+            )
             raise ReservationError(
                 "busy", "Databáze právě zpracovává jinou rezervaci; zopakujte požadavek."
             ) from error
